@@ -1,0 +1,1 @@
+"""SpendGuard enforcement gateway."""

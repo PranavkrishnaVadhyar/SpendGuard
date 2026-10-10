@@ -4,7 +4,14 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
-No project implementation has been recorded yet. Replace this sentence with entries as you build:
+## 2026-10-10T22:33:31+05:30 — Author SpendGuard backend
+
+- Changed: Added `gateway/{__init__,main,models,db,policy,budget,auth}.py`, backend tests, shared requirements, environment example, pytest configuration, and backend documentation. Extended Git ignores and updated README and AI usage.
+- Why: Implement Person A's backend contract for deterministic spend enforcement and integration with Person B/C modules.
+- Validation: Read the task, repository rules, and source changes; inspected Git status and diff. Application, tests, imports, builds, and installation were deliberately not run, per user instruction. No passing runtime result is claimed.
+- Limitations: Runtime and integration verification pending; fallback executor is a mock; no recovery for interrupted execution. Reset returns 409 during execution. README received only backend setup/status updates required by the repository guide despite attachment ownership guidance.
+
+Entry template:
 
 ```text
 ## <actual timestamp> — <short change title>

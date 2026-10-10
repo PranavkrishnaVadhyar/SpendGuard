@@ -27,30 +27,34 @@ Keep your approved Luma QR code ready for entry, and bring your laptop and charg
 4. Record meaningful changes in [CHANGELOG.md](CHANGELOG.md) and your Codex usage in [AI_USAGE.md](AI_USAGE.md). Commit after completed milestones; aim for a meaningful checkpoint about every 30 minutes.
 5. Complete [SUBMISSION.md](SUBMISSION.md) with your code repository, short project description, and working demo. Follow submission instructions announced by the organizers.
 
-This template has no application code or required technology stack. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
+SpendGuard's FastAPI backend has now been authored. It has not been executed or tested yet, at the user's request. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
 
 ## Project overview — complete during the event
 
-- **Project name:** TODO
-- **Short description:** TODO — what it does, who it helps, and why it matters.
+- **Project name:** SpendGuard
+- **Short description:** A spend-control gateway for AI agents with deterministic budgets, human approvals, and kill switches. Payments are mocked.
 - **Team:** TODO — participant names and GitHub handles; maximum 4 members.
-- **Working demo:** TODO — link or local demo instructions.
-- **Technology stack:** TODO
+- **Working demo:** Not yet verified; see [backend setup](docs/backend.md).
+- **Technology stack:** Python 3.11+, FastAPI, Pydantic v2, SQLite, Uvicorn.
 
 ### Run the project
 
-Replace these placeholders with commands that actually work for your project:
+Commands below are provided for later use and have not been run:
 
-1. Prerequisites and versions: TODO
-2. Dependency installation: TODO
-3. Environment setup: TODO — list required variable names and provide a sanitized `.env.example` if needed.
-4. Start the project: TODO
-5. Run checks or tests: TODO
+1. Install Python 3.11+ and create a virtual environment: `python -m venv .venv`.
+2. Install dependencies: `.\.venv\Scripts\python -m pip install -r requirements.txt`.
+3. Copy `.env.example` to `.env` if absent; configure `ADMIN_KEY`, `DB_PATH`, and `APPROVAL_TTL_SECONDS`.
+4. Start: `.\.venv\Scripts\python -m uvicorn gateway.main:app --reload --port 8000`.
+5. Tests: `.\.venv\Scripts\python -m pytest -q`.
+
+Startup generates the ignored `.demo_token` for agent authentication. See
+[docs/backend.md](docs/backend.md) for the HTTP contract, integration details,
+dependency sources, and limitations.
 
 ### Current status
 
-- Working features: TODO
-- Known limitations: TODO
-- Libraries, APIs, and public datasets used: TODO — include source links and applicable attribution.
+- Authored features (unverified): policy evaluation, atomic reservations, agent/admin authentication, request feed, approvals, expiry, kill/resume, reset, and backend tests.
+- Known limitations: no runtime checks performed; payment and explanation fallbacks are local mocks; dashboard, SDK, and demo agent remain separate teammates' work. In-flight execution recovery is not implemented.
+- Libraries and sources: listed in [backend documentation](docs/backend.md); no public dataset used.
 
 See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.
