@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spendguard"
+version = "0.1.0"
+description = "Deterministic spend controls and approvals for AI agents"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.37"]
+openai = ["openai>=1.0"]
+all = ["streamlit>=1.37", "openai>=1.0"]
+dev = ["pytest", "streamlit>=1.37", "openai>=1.0"]
+
+[project.scripts]
+spendguard = "spendguard.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["spendguard", "spendguard.*"]
+
+[tool.setuptools.package-data]
+"spendguard.dashboard" = ["fixtures/*.json"]

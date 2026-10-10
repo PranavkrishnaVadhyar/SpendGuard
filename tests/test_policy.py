@@ -1,6 +1,6 @@
 import pytest
 
-from gateway.policy import evaluate, normalize_merchant
+from spendguard.policy import evaluate, normalize_merchant
 
 
 @pytest.mark.parametrize("overrides,decision,reason", [

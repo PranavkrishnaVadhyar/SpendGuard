@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-pydantic>=2,<3
-httpx
-streamlit
-openai
-pytest
-python-dotenv
-respx

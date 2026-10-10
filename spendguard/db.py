@@ -1,19 +1,14 @@
-"""SQLite connections, schema, seed data, and lazy expiry."""
+"""Per-operation SQLite connections, schema creation, and lazy expiry."""
 
 from contextlib import contextmanager
 from datetime import datetime, timezone
-import hashlib
-import json
-import os
-from pathlib import Path
-import secrets
 import sqlite3
 
-ROOT = Path(__file__).resolve().parents[1]
-TOKEN_PATH = ROOT / ".demo_token"
+from spendguard.errors import SpendGuardError
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS agents (
- id TEXT PRIMARY KEY, name TEXT NOT NULL, token_hash TEXT NOT NULL,
+ id TEXT PRIMARY KEY, name TEXT NOT NULL,
  status TEXT NOT NULL DEFAULT 'active');
 CREATE TABLE IF NOT EXISTS policies (
  agent_id TEXT PRIMARY KEY REFERENCES agents(id), daily_budget REAL NOT NULL,
@@ -33,8 +28,8 @@ def now() -> str:
 
 
 @contextmanager
-def connection():
-    conn = sqlite3.connect(os.getenv("DB_PATH", str(ROOT / "spendguard.db")), timeout=5)
+def connection(db_path):
+    conn = sqlite3.connect(db_path, timeout=5)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=5000")
@@ -45,8 +40,8 @@ def connection():
 
 
 @contextmanager
-def transaction():
-    with connection() as conn:
+def transaction(db_path):
+    with connection(db_path) as conn:
         conn.execute("BEGIN IMMEDIATE")
         try:
             yield conn
@@ -56,29 +51,15 @@ def transaction():
             raise
 
 
-def seed(conn):
-    if TOKEN_PATH.exists():
-        token = TOKEN_PATH.read_text(encoding="utf-8").strip()
-        if not token:
-            raise ValueError("demo token file is empty")
-    else:
-        token = secrets.token_urlsafe(32)
-        TOKEN_PATH.write_text(token, encoding="utf-8")
-    conn.execute("INSERT INTO agents VALUES (?, ?, ?, 'active')", (
-        "research-bot", "Research Bot", hashlib.sha256(token.encode()).hexdigest()))
-    conn.execute("INSERT INTO policies VALUES (?, ?, ?, ?, ?)", (
-        "research-bot", 50, 100, 25,
-        json.dumps(["openai.com", "serpapi.com", "aws.amazon.com"])))
-    conn.execute("INSERT OR REPLACE INTO settings VALUES ('kill_switch_global', '0')")
-
-
-def initialize():
-    with connection() as conn:
+def initialize(db_path):
+    with connection(db_path) as conn:
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(agents)")}
+        if columns and columns != {"id", "name", "status"}:
+            raise SpendGuardError("incompatible database schema; use a new database path and keep the old file")
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
-    with transaction() as conn:
-        if not conn.execute("SELECT 1 FROM agents LIMIT 1").fetchone():
-            seed(conn)
+    with transaction(db_path) as conn:
+        conn.execute("INSERT OR IGNORE INTO settings VALUES ('kill_switch_global', '0')")
 
 
 def expire(conn, timestamp: str):

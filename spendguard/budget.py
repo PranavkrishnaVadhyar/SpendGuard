@@ -3,15 +3,17 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 import json
-import os
+from uuid import uuid4
 
-from gateway import db, policy
-
-RESERVING = {"allowed", "executing", "pending_approval", "approved"}
+from spendguard import db, policy
+from spendguard.constants import RESERVING
+from spendguard.errors import UnknownAgent
 
 
 def ledger(conn, agent_id: str, timestamp: str) -> dict:
     policy_row = conn.execute("SELECT daily_budget FROM policies WHERE agent_id=?", (agent_id,)).fetchone()
+    if policy_row is None:
+        raise UnknownAgent("unknown agent")
     rows = conn.execute("SELECT amount, status FROM requests WHERE agent_id=? AND substr(created_at,1,10)=?",
                         (agent_id, timestamp[:10])).fetchall()
     # Decimal summation avoids admitting overspend through binary-float addition.
@@ -22,9 +24,11 @@ def ledger(conn, agent_id: str, timestamp: str) -> dict:
             "reserved": float(reserved), "available": float(daily - spent - reserved)}
 
 
-def reserve(agent_id: str, body) -> tuple[dict, bool]:
-    with db.transaction() as conn:
-        existing = conn.execute("SELECT * FROM requests WHERE idempotency_key=?", (body.idempotency_key,)).fetchone()
+def reserve(db_path, agent_id: str, merchant: str, amount: float, reason: str = "",
+            idempotency_key: str | None = None, approval_ttl_seconds=300) -> tuple[dict, bool]:
+    key = str(uuid4()) if idempotency_key is None else idempotency_key
+    with db.transaction(db_path) as conn:
+        existing = conn.execute("SELECT * FROM requests WHERE idempotency_key=?", (key,)).fetchone()
         if existing:
             if existing["agent_id"] != agent_id:
                 raise ValueError("idempotency key belongs to another agent")
@@ -32,22 +36,21 @@ def reserve(agent_id: str, body) -> tuple[dict, bool]:
         timestamp = db.now()
         db.expire(conn, timestamp)
         agent = conn.execute("SELECT * FROM agents WHERE id=?", (agent_id,)).fetchone()
+        if agent is None:
+            raise UnknownAgent("unknown agent")
         rules = conn.execute("SELECT * FROM policies WHERE agent_id=?", (agent_id,)).fetchone()
         balances = ledger(conn, agent_id, timestamp)
         decision = policy.evaluate(global_kill=db.killed(conn), agent_status=agent["status"],
-            amount=body.amount, merchant=body.merchant, allowlist=json.loads(rules["allowlist"]),
+            amount=amount, merchant=merchant, allowlist=json.loads(rules["allowlist"]),
             per_txn_cap=rules["per_txn_cap"], available=balances["available"],
             approval_threshold=rules["approval_threshold"])
         status = {"allow": "allowed", "hold": "pending_approval", "deny": "denied"}[decision.decision]
         expires = None
         if status == "pending_approval":
-            ttl = int(os.getenv("APPROVAL_TTL_SECONDS", "300"))
-            if ttl <= 0:
-                raise ValueError("approval TTL must be positive")
-            expires = (datetime.fromisoformat(timestamp.replace("Z", "+00:00")) + timedelta(seconds=ttl)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            expires = (datetime.fromisoformat(timestamp.replace("Z", "+00:00")) + timedelta(seconds=approval_ttl_seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
         cursor = conn.execute("""INSERT INTO requests
             (idempotency_key,agent_id,merchant,amount,reason,status,decision_reason,created_at,decided_at,expires_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?)""", (body.idempotency_key, agent_id,
-            policy.normalize_merchant(body.merchant), body.amount, body.reason, status,
+            VALUES (?,?,?,?,?,?,?,?,?,?)""", (key, agent_id,
+            policy.normalize_merchant(merchant), amount, reason, status,
             decision.reason, timestamp, timestamp if status == "denied" else None, expires))
         return dict(conn.execute("SELECT * FROM requests WHERE id=?", (cursor.lastrowid,)).fetchone()), True

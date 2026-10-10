@@ -27,34 +27,35 @@ Keep your approved Luma QR code ready for entry, and bring your laptop and charg
 4. Record meaningful changes in [CHANGELOG.md](CHANGELOG.md) and your Codex usage in [AI_USAGE.md](AI_USAGE.md). Commit after completed milestones; aim for a meaningful checkpoint about every 30 minutes.
 5. Complete [SUBMISSION.md](SUBMISSION.md) with your code repository, short project description, and working demo. Follow submission instructions announced by the organizers.
 
-SpendGuard's FastAPI backend has now been authored. It has not been executed or tested yet, at the user's request. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
+SpendGuard's Python library core has been migrated from the earlier backend. It has not been executed or tested, at the user's request. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
 
 ## Project overview — complete during the event
 
 - **Project name:** SpendGuard
-- **Short description:** A spend-control gateway for AI agents with deterministic budgets, human approvals, and kill switches. Payments are mocked.
+- **Short description:** A Python library for agent spend controls with deterministic budgets, human approvals, and kill switches. Payments are mocked by default.
 - **Team:** TODO — participant names and GitHub handles; maximum 4 members.
-- **Working demo:** Not yet verified; see [backend setup](docs/backend.md).
-- **Technology stack:** Python 3.11+, FastAPI, Pydantic v2, SQLite, Uvicorn.
+- **Working demo:** Not yet verified; see [library setup](docs/core.md).
+- **Technology stack:** Python 3.10+ standard library and SQLite; setuptools packaging.
 
 ### Run the project
 
 Commands below are provided for later use and have not been run:
 
-1. Install Python 3.11+ and create a virtual environment: `python -m venv .venv`.
-2. Install dependencies: `.\.venv\Scripts\python -m pip install -r requirements.txt`.
-3. Copy `.env.example` to `.env` if absent; configure `ADMIN_KEY`, `DB_PATH`, and `APPROVAL_TTL_SECONDS`.
-4. Start: `.\.venv\Scripts\python -m uvicorn gateway.main:app --reload --port 8000`.
-5. Tests: `.\.venv\Scripts\python -m pytest -q`.
+1. Install Python 3.10+ and create a virtual environment: `python -m venv .venv`.
+2. Install the core: `.\.venv\Scripts\python -m pip install -e .`.
+3. For tests, install pytest: `.\.venv\Scripts\python -m pip install pytest`. Optional full extras: `.\.venv\Scripts\python -m pip install -e ".[dev]"`.
+4. Use `from spendguard import SpendGuard, Policy`, construct a guard with a database path, then call `create_agent` and `request`; see the complete [example](docs/core.md).
+5. Run tests when authorized: `.\.venv\Scripts\python -m pytest -q`.
 
-Startup generates the ignored `.demo_token` for agent authentication. See
-[docs/backend.md](docs/backend.md) for the HTTP contract, integration details,
-dependency sources, and limitations.
+Construction creates tables without demo agents or wiping data. The core does
+not load `.env`; pass configuration directly. The trimmed `.env.example` is for
+optional integrations. See [docs/core.md](docs/core.md) for the API, dependency
+sources, and limitations. Use a new database path if an old schema exists.
 
 ### Current status
 
-- Authored features (unverified): policy evaluation, atomic reservations, agent/admin authentication, request feed, approvals, expiry, kill/resume, reset, and backend tests.
-- Known limitations: no runtime checks performed; payment and explanation fallbacks are local mocks; dashboard, SDK, and demo agent remain separate teammates' work. In-flight execution recovery is not implemented.
-- Libraries and sources: listed in [backend documentation](docs/backend.md); no public dataset used.
+- Authored features (unverified): dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, and library tests.
+- Known limitations: no runtime or packaging checks performed; default execution is a mock; dashboard, CLI, tools, and examples remain separate teammates' work. Interrupted execution recovery is not implemented. The configured CLI entry point awaits Person B's module.
+- Libraries and sources: listed in [core documentation](docs/core.md); no public dataset used.
 
 See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.
