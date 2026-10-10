@@ -4,11 +4,12 @@ Use Codex during the hackathon and briefly document its actual contribution here
 
 ## Event build log
 
-No participant AI usage has been recorded yet. Replace the placeholder row as you build. Mark human review as pending until someone has reviewed the contribution.
+Human review remains pending until a participant reviews the contribution.
 
 | Date and time with timezone | Tool / model, if known | Task | Assistance and affected files | Human review / corrections | Validation and result |
 | --- | --- | --- | --- | --- | --- |
-| TODO | Codex | TODO | TODO | Pending | TODO |
+| 2026-10-10T23:35:31+05:30 | Codex | Migrate Person A backend to a local library without execution | Reused/moved policy, reservation, storage, and lifecycle code; authored public API, packaging, background callbacks, adapted tests, and documentation | Human review pending; removed a pre-existing credential from the example while preserving local configuration; recommended rotation after tool-output exposure | Source and Git diff review only; no install, import, application, tests, or build run |
+| 2026-10-10T22:33:31+05:30 | Codex | Person A backend implementation, without execution | Authored gateway modules, policy/reservation/API tests, setup files, and backend documentation; updated repository records | Pending; source review included preserving existing ignore rules and guarding reset during execution | Read-only repository/source review only; no application, dependency installation, tests, imports, or build executed |
 
 ## Template preparation
 

@@ -5,12 +5,17 @@
 !.env.*.example
 *.pem
 *.key
+.demo_token
+*.db
+*.db-wal
+*.db-shm
 
 # Common dependencies, build output, caches, and local tooling.
 node_modules/
 .next/
 dist/
 build/
+*.egg-info/
 coverage/
 .venv/
 venv/
@@ -20,5 +25,3 @@ __pycache__/
 .DS_Store
 Thumbs.db
 *.log
-
-# Add entries appropriate to your chosen language or framework.

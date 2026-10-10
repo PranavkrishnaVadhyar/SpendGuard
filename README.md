@@ -27,30 +27,35 @@ Keep your approved Luma QR code ready for entry, and bring your laptop and charg
 4. Record meaningful changes in [CHANGELOG.md](CHANGELOG.md) and your Codex usage in [AI_USAGE.md](AI_USAGE.md). Commit after completed milestones; aim for a meaningful checkpoint about every 30 minutes.
 5. Complete [SUBMISSION.md](SUBMISSION.md) with your code repository, short project description, and working demo. Follow submission instructions announced by the organizers.
 
-This template has no application code or required technology stack. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
+SpendGuard's Python library core has been migrated from the earlier backend. It has not been executed or tested, at the user's request. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
 
 ## Project overview — complete during the event
 
-- **Project name:** TODO
-- **Short description:** TODO — what it does, who it helps, and why it matters.
+- **Project name:** SpendGuard
+- **Short description:** A Python library for agent spend controls with deterministic budgets, human approvals, and kill switches. Payments are mocked by default.
 - **Team:** TODO — participant names and GitHub handles; maximum 4 members.
-- **Working demo:** TODO — link or local demo instructions.
-- **Technology stack:** TODO
+- **Working demo:** Not yet verified; see [library setup](docs/core.md).
+- **Technology stack:** Python 3.10+ standard library and SQLite; setuptools packaging.
 
 ### Run the project
 
-Replace these placeholders with commands that actually work for your project:
+Commands below are provided for later use and have not been run:
 
-1. Prerequisites and versions: TODO
-2. Dependency installation: TODO
-3. Environment setup: TODO — list required variable names and provide a sanitized `.env.example` if needed.
-4. Start the project: TODO
-5. Run checks or tests: TODO
+1. Install Python 3.10+ and create a virtual environment: `python -m venv .venv`.
+2. Install the core: `.\.venv\Scripts\python -m pip install -e .`.
+3. For tests, install pytest: `.\.venv\Scripts\python -m pip install pytest`. Optional full extras: `.\.venv\Scripts\python -m pip install -e ".[dev]"`.
+4. Use `from spendguard import SpendGuard, Policy`, construct a guard with a database path, then call `create_agent` and `request`; see the complete [example](docs/core.md).
+5. Run tests when authorized: `.\.venv\Scripts\python -m pytest -q`.
+
+Construction creates tables without demo agents or wiping data. The core does
+not load `.env`; pass configuration directly. The trimmed `.env.example` is for
+optional integrations. See [docs/core.md](docs/core.md) for the API, dependency
+sources, and limitations. Use a new database path if an old schema exists.
 
 ### Current status
 
-- Working features: TODO
-- Known limitations: TODO
-- Libraries, APIs, and public datasets used: TODO — include source links and applicable attribution.
+- Authored features (unverified): dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, and library tests.
+- Known limitations: no runtime or packaging checks performed; default execution is a mock; dashboard, CLI, tools, and examples remain separate teammates' work. Interrupted execution recovery is not implemented. The configured CLI entry point awaits Person B's module.
+- Libraries and sources: listed in [core documentation](docs/core.md); no public dataset used.
 
 See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.
