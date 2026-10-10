@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T03:20:47+05:30 — Add guarded LangChain tools
+
+- Changed: Added optional `langchain` extra and `spendguard.integrations.langchain.wrap_tool`; persisted tool arguments/results with reservations and idempotency checks; deferred external approvals to the waiting/resumed wrapper instead of default mock adapters. Added 17 integration tests and `sample_app/langchain_agent.py`; updated core, sample, root, release, and AI documentation; synchronized 18 runtime files into `package_release/`.
+- Why: Let LangChain agents execute paid tools under existing limits, approval, and kill controls while retaining a dependency-free core and independently installable package folder.
+- Validation: Installed LangChain 1.4.4; full pytest passed, 96 tests in 10.82s, including an actual create_agent graph with a scripted model, concurrent calls, retries, denial, external approval, reject/expiry/kill, failure, and ainvoke. Ran offline agent example successfully without API keys or payments. Built standalone wheel, checked all 18 runtime files against source and snapshot, optional-only dependency metadata, core import with site-packages disabled, documentation links, and diff whitespace. `pip check` found no broken requirements, with a leftover invalid-distribution warning from the interrupted editable reinstall.
+- Limitations: Supports synchronous StructuredTool tools with Pydantic schemas; native async-only tools, injected runtime/state, custom BaseTool subclasses, and streaming output are outside this version. Declared tool costs only; no inference-cost tracking or actual-cost reconciliation. Approved calls need the waiting/resumed wrapper; crash/partial external side effects still require manual reconciliation. Ordinary custom-executor approvals and previously reviewed adapter/dashboard/CLI findings remain unresolved. Interactive dashboard and real provider integration were not run. Local editable reinstall attempted twice but failed because Windows locks `spendguard.exe`; LangChain installed separately and module/example/tests worked. Human review pending; no index publication or remote push.
+
 ## 2026-10-11T02:52:36+05:30 — Assemble standalone package directory
 
 - Changed: Added `package_release/` containing only `pyproject.toml`, a package-focused README, and the 16 library/fixture files under `spendguard/`. Retained runtime extras and removed the development-only extra from the release metadata. Linked the snapshot in the root README.

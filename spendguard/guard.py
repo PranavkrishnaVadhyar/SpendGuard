@@ -103,6 +103,10 @@ class SpendGuard:
 
     def request(self, agent_id: str, merchant: str, amount: float, reason: str = "",
                 idempotency_key: str | None = None) -> Outcome:
+        return self._request(agent_id, merchant, amount, reason, idempotency_key)
+
+    def _request(self, agent_id, merchant, amount, reason="", idempotency_key=None,
+                 tool_call=None, tool_executor=None):
         try:
             _text(agent_id, "agent id")
             _text(merchant, "merchant", 2048)
@@ -113,9 +117,9 @@ class SpendGuard:
             if idempotency_key is not None:
                 _text(idempotency_key, "idempotency key")
             row, created = budget.reserve(self.db_path, agent_id, merchant, float(amount), reason,
-                                          idempotency_key, self.approval_ttl_seconds)
+                                          idempotency_key, self.approval_ttl_seconds, tool_call)
             if created and row["status"] == "allowed":
-                row = self._execute_request(row["id"])
+                row = self._execute_request(row["id"], tool_executor)
             elif created and row["status"] == "pending_approval":
                 self._start_hold_tasks(row)
             return _outcome(row)
@@ -124,11 +128,15 @@ class SpendGuard:
         except Exception:
             return Outcome("deny", "denied", "request could not be processed", None, None, None)
 
-    def _execute_request(self, request_id):
+    def _execute_request(self, request_id, tool_executor=None):
         # Claim once under the write lock. Never execute an idempotent replay.
         with db.transaction(self.db_path) as conn:
             row = _fetch(conn, request_id)
             if row["status"] not in {"allowed", "approved"}:
+                return row
+            tool_call = conn.execute("SELECT * FROM tool_calls WHERE request_id=?", (request_id,)).fetchone()
+            # Approval UIs authorize tools; only their owning wrapper executes them.
+            if tool_call is not None and tool_executor is None:
                 return row
             agent = conn.execute("SELECT status FROM agents WHERE id=?", (row["agent_id"],)).fetchone()
             if db.killed(conn) or agent["status"] != "active":
@@ -137,8 +145,17 @@ class SpendGuard:
                 return _fetch(conn, request_id)
             conn.execute("UPDATE requests SET status='executing' WHERE id=?", (request_id,))
         try:
-            result = self.executor({key: row[key] for key in (
-                "id", "agent_id", "merchant", "amount", "reason", "idempotency_key")})
+            tool_result = None
+            if tool_call is not None:
+                value = tool_executor(json.loads(tool_call["arguments"]))
+                try:
+                    tool_result = json.dumps(value, default=str, ensure_ascii=False, allow_nan=False)
+                except (TypeError, ValueError):
+                    tool_result = json.dumps(str(value))
+                result = {"ok": True, "receipt_id": f"tool_{request_id}"}
+            else:
+                result = self.executor({key: row[key] for key in (
+                    "id", "agent_id", "merchant", "amount", "reason", "idempotency_key")})
             success = result.get("ok") is True
             receipt = result.get("receipt_id")
             if receipt is not None and not isinstance(receipt, str):
@@ -151,6 +168,8 @@ class SpendGuard:
             conn.execute("""UPDATE requests SET status=?,receipt_id=?,decided_at=?,decision_reason=?
                 WHERE id=? AND status='executing'""",
                          (status, receipt if success else None, db.now(), decision_reason, request_id))
+            if tool_call is not None and success:
+                conn.execute("UPDATE tool_calls SET result=? WHERE request_id=?", (tool_result, request_id))
             return _fetch(conn, request_id)
 
     def _start_hold_tasks(self, row):

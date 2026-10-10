@@ -116,11 +116,20 @@ print(outcome.status, outcome.receipt_id)
 `request()` already invokes the configured adapter for allowed spending. A real
 integration must supply an adapter/executor that performs the paid operation;
 the built-in adapters only simulate it. Do not run the same purchase again after
-`request()` reports settlement. Automated `governed` tool wrappers are not yet
-part of this checkout. An executor registered only in one process is not shared
+`request()` reports settlement. An optional LangChain tool wrapper is now
+available; see below. An executor registered only in one process is not shared
 with a separate dashboard process; the sample deliberately uses default mocks.
 
 This sample uses only the package and Python standard library. Dashboard use
 requires the package's optional Streamlit extra. Standalone installation, sample
 execution, and interactive approval have not yet been verified; see the repository
 validation log.
+
+## LangChain consumer example
+
+Install `"..[langchain]"` from this directory (or your supplied package source
+path with its `langchain` extra), then run `python langchain_agent.py`.
+This example uses `create_agent`, a scripted local chat model, and a guarded
+`@tool` function. No model provider, API key, or payment is required. Its database
+is separate at `langchain.db`. See [LangChain usage](../docs/langchain.md) for
+real-model wiring, approval, retries, and supported tool types.

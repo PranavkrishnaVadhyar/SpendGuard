@@ -139,10 +139,12 @@ with `get`; the initially returned Outcome is a snapshot and is not updated.
 
 Defaults use guarded imports of Person B's `spendguard.adapters.execute` and
 `spendguard.explain.explain`; import failures use deterministic local fallbacks.
-Person B's CLI/dashboard and Person C's tools/examples remain outside this task.
-The console entry point targets `spendguard.cli:main`, which will be available
-when that teammate module exists. Package discovery includes their future
-subpackages, and dashboard fixture JSON is configured as package data.
+The CLI/dashboard are now present. Optional [LangChain tool wrapping](langchain.md)
+stores tool arguments and results in an additive `tool_calls` table. A separate
+approval process authorizes these requests without executing a default adapter;
+the waiting or resumed wrapper executes the actual tool. Ordinary requests retain
+their existing executor behavior. Reset cascades deletion to saved tool calls.
+Package discovery includes integration subpackages and dashboard fixture JSON.
 
 ## Limitations and dependencies
 
@@ -162,9 +164,12 @@ Core runtime dependencies: Python standard library only, including
 and decimal. Packaging uses [setuptools](https://setuptools.pypa.io/).
 Tests use [pytest](https://docs.pytest.org/). Optional extras use
 [Streamlit](https://streamlit.io/) and the
-[OpenAI Python SDK](https://github.com/openai/openai-python).
+[OpenAI Python SDK](https://github.com/openai/openai-python), plus optional
+[LangChain](https://docs.langchain.com/oss/python/langchain/tools) for guarded tools.
 No public datasets or external project implementations were imported.
-The current 79 tests pass; source-review findings about executor configuration,
-adapter result validation, dashboard read errors, and CLI error handling remain
-unresolved and are not covered by those tests. Local editable packaging and
-dependency consistency have been checked; a distributable release build has not.
+The original 79 tests and additional LangChain integration tests pass; exact
+results are in the changelog. Source-review findings about ordinary custom
+executor configuration, adapter result validation, dashboard read errors, and
+CLI error handling remain unresolved. Wrapped tool approvals are now deferred
+to their wrapper. A standalone release wheel has been built and inspected;
+interactive dashboard and real paid-service integration remain unverified.

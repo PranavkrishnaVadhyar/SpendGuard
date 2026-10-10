@@ -14,7 +14,8 @@ python -m pip install .
 
 Optional dashboard: `python -m pip install ".[dashboard]"`.
 Optional OpenAI explanations: `python -m pip install ".[openai]"`.
-Both extras: `python -m pip install ".[all]"`.
+Optional LangChain tools: `python -m pip install ".[langchain]"`.
+All extras: `python -m pip install ".[all]"`.
 
 ## Use
 
@@ -82,6 +83,52 @@ Open http://localhost:8501. CLI commands include `status`, `feed`, `pending`,
 
 ## Integration and limits
 
+### LangChain agents
+
+```python
+from langchain_core.tools import tool
+from spendguard.integrations.langchain import wrap_tool
+
+@tool
+def buy_credits(quantity: int) -> dict:
+    """Buy local demo credits."""
+    return {"credits": quantity}  # Your actual provider operation belongs here.
+
+guard.create_agent("langchain-bot", Policy(100, 50, 25, ["credits.example"]))
+safe_buy = wrap_tool(buy_credits, guard, agent_id="langchain-bot",
+                    merchant="credits.example", amount=lambda args: args["quantity"] * 10,
+                    wait_timeout=120)
+# Pass safe_buy in tools=[safe_buy] to langchain.agents.create_agent(model=your_model, ...).
+result = safe_buy.invoke({"quantity": 1})
+print(result["status"], result["result"])
+```
+
+The trusted application sets the merchant and cost calculation. Allowed calls
+execute the actual wrapped tool and save its output. Denied calls never execute.
+Held calls reserve funds, save arguments, and wait for human approval. The
+CLI/dashboard only records approval for wrapped calls; the waiting wrapper
+executes them. If waiting times out, retry the same wrapper/arguments with
+`config={"metadata": {"spendguard_idempotency_key": "unique-order-id"}}` supplied
+on both invocations. Each invocation without a key creates a new spend request.
+Reusing a key with different arguments, name, merchant, or cost denies the call;
+settled retries return the saved result. Approved requests remain reserved until
+the wrapper resumes or kill cancels them. No background worker is scheduled.
+
+The result envelope has decision/status/reason/request_id/receipt_id/result.
+JSON-compatible outputs retain their shape; other values fall back to strings.
+Tool arguments/results are stored in SQLite. The default approval reason includes
+the tool name and arguments (truncated at 4,000 characters); set `reason=` to
+customize it. Protect the database and avoid credentials in tool inputs.
+
+Supported: synchronous LangChain `StructuredTool` tools created with `@tool` and
+Pydantic schemas; `ainvoke` uses a worker thread. Native async-only tools,
+injected runtime/state, custom BaseTool subclasses, and streaming output are
+outside this version. Costs are declared upfront; model calls and unwrapped
+operations are not tracked. Install your model provider's package separately.
+See the official [LangChain tools documentation](https://docs.langchain.com/oss/python/langchain/tools).
+
+### Core callbacks
+
 `SpendGuard(db_path, executor=callback, explainer=callback, on_hold=callback)`
 accepts optional integrations. Executors receive a dict containing
 `id, agent_id, merchant, amount, reason, idempotency_key` and return
@@ -97,7 +144,7 @@ automatically. CLI/dashboard database selection uses `SPENDGUARD_DB` or `--db`;
 Python callers pass the path to the constructor.
 
 SpendGuard is a trusted local library, without an authentication boundary.
-Processes must share the same local database to share state. Custom executors
+Processes must share the same local database to share state. For ordinary requests, custom executors
 and adapter registrations are process-local and must be configured in any
 process performing approvals; the stock dashboard/CLI uses default adapters.
 Kill cannot undo an action already executing. Interrupted execution may require

@@ -12,8 +12,9 @@ dependencies = []
 [project.optional-dependencies]
 dashboard = ["streamlit>=1.37"]
 openai = ["openai>=1.0"]
-all = ["streamlit>=1.37", "openai>=1.0"]
-dev = ["pytest", "streamlit>=1.37", "openai>=1.0"]
+langchain = ["langchain>=1,<2"]
+all = ["streamlit>=1.37", "openai>=1.0", "langchain>=1,<2"]
+dev = ["pytest", "streamlit>=1.37", "openai>=1.0", "langchain>=1,<2"]
 
 [project.scripts]
 spendguard = "spendguard.cli:main"

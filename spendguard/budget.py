@@ -25,13 +25,23 @@ def ledger(conn, agent_id: str, timestamp: str) -> dict:
 
 
 def reserve(db_path, agent_id: str, merchant: str, amount: float, reason: str = "",
-            idempotency_key: str | None = None, approval_ttl_seconds=300) -> tuple[dict, bool]:
+            idempotency_key: str | None = None, approval_ttl_seconds=300,
+            tool_call=None) -> tuple[dict, bool]:
     key = str(uuid4()) if idempotency_key is None else idempotency_key
     with db.transaction(db_path) as conn:
         existing = conn.execute("SELECT * FROM requests WHERE idempotency_key=?", (key,)).fetchone()
         if existing:
             if existing["agent_id"] != agent_id:
                 raise ValueError("idempotency key belongs to another agent")
+            saved = conn.execute("SELECT * FROM tool_calls WHERE request_id=?", (existing["id"],)).fetchone()
+            if tool_call is not None:
+                if (saved is None or saved["tool_name"] != tool_call["name"]
+                        or saved["arguments"] != tool_call["arguments"]
+                        or existing["merchant"] != policy.normalize_merchant(merchant)
+                        or existing["amount"] != amount):
+                    raise ValueError("idempotency key belongs to a different tool call")
+            elif saved is not None:
+                raise ValueError("idempotency key belongs to a tool call")
             return dict(existing), False
         timestamp = db.now()
         db.expire(conn, timestamp)
@@ -53,4 +63,7 @@ def reserve(db_path, agent_id: str, merchant: str, amount: float, reason: str = 
             VALUES (?,?,?,?,?,?,?,?,?,?)""", (key, agent_id,
             policy.normalize_merchant(merchant), amount, reason, status,
             decision.reason, timestamp, timestamp if status == "denied" else None, expires))
+        if tool_call is not None:
+            conn.execute("INSERT INTO tool_calls (request_id,tool_name,arguments) VALUES (?,?,?)",
+                         (cursor.lastrowid, tool_call["name"], tool_call["arguments"]))
         return dict(conn.execute("SELECT * FROM requests WHERE id=?", (cursor.lastrowid,)).fetchone()), True

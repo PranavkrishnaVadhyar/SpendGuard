@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS requests (
  explanation TEXT, receipt_id TEXT, approver TEXT, created_at TEXT NOT NULL,
  decided_at TEXT, expires_at TEXT);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS tool_calls (
+ request_id INTEGER PRIMARY KEY REFERENCES requests(id) ON DELETE CASCADE,
+ tool_name TEXT NOT NULL, arguments TEXT NOT NULL, result TEXT);
 """
 
 
