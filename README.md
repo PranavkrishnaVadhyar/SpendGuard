@@ -60,6 +60,9 @@ A complete consumer example is in [sample_app](sample_app/README.md). Run
 `.\.venv\Scripts\python.exe sample_app\main.py --reset` from this folder for
 allow/hold/deny examples, or add `--wait` to wait for a dashboard decision.
 Its database is separate at `sample_app/sample.db`.
+To use it as another developer's standalone project, follow the sample README
+from inside `sample_app/`: create its own environment and install SpendGuard as
+a dependency from the parent checkout or a separately supplied source path.
 
 ### Current status
 

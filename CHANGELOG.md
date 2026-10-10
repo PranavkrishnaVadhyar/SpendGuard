@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T02:44:12+05:30 — Explain standalone package consumption
+
+- Changed: Reworked `sample_app/README.md` to run from the consumer directory with its own environment and a normal SpendGuard dependency installation; documented copying the app outside the repository, future index installation, direct API use, and adapter ownership. Linked the standalone workflow in the root README.
+- Why: Clarify the user's intended example: how another developer consumes the installed package in their own application.
+- Validation: Reviewed paths and consistency with the existing sample script; Git diff whitespace check. No additional installation, sample execution, or tests performed for this documentation-only clarification.
+- Limitations: Package index publication is not verified. Independent installation and interactive demo remain unverified; mock-payment and executor configuration limitations are documented.
+
 ## 2026-10-11T02:39:53+05:30 — Add sample package consumer
 
 - Changed: Added `sample_app/main.py` and its README showing public package imports, agent/policy setup, allow/hold/deny purchases, idempotent retries, budget reporting, and optional polling while approving through the dashboard. Linked the sample in the root README.
