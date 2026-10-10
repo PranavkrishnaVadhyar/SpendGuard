@@ -1,7 +1,9 @@
 # SpendGuard library core
 
-The migration is authored but **not executed or tested**, at the user's request.
-Installation, import, build, integration, and concurrency checks remain pending.
+The library and development extras were installed in the local `.venv` with
+Python 3.14.3 on 11 October 2026. Editable package build succeeded and `pip check`
+reported no broken requirements. Application execution, import smoke checks,
+tests, integration, and concurrency validation remain pending at the user's request.
 
 ## Installation and first request
 
@@ -161,4 +163,5 @@ Tests use [pytest](https://docs.pytest.org/). Optional extras use
 [Streamlit](https://streamlit.io/) and the
 [OpenAI Python SDK](https://github.com/openai/openai-python).
 No public datasets or external project implementations were imported.
-All runtime and packaging claims above describe authored behavior, pending validation.
+Runtime behavior above remains pending validation. Local editable packaging and
+dependency consistency have been checked; a distributable release build has not.

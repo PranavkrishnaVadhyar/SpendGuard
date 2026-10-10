@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T02:29:48+05:30 — Install local development environment
+
+- Changed: Created ignored `.venv` with Python 3.14.3 and installed editable SpendGuard 0.1.0 with development extras; updated README, core documentation, and AI usage with actual setup status.
+- Why: Complete the user's installation request and prepare the checkout for later application and test execution.
+- Validation: `python -m venv .venv` and `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"` completed after sandbox restrictions required elevated execution. `.\.venv\Scripts\python.exe -m pip check` reported `No broken requirements found.` Installed pytest 9.1.1, Streamlit 1.65.0, and OpenAI 3.28.0.
+- Limitations: Application, tests, and import smoke checks were not run. Dependency consistency does not verify runtime compatibility or resolve the preceding source-review findings. The environment is local and ignored by Git.
+
 ## 2026-10-10T23:35:31+05:30 — Migrate backend to library core
 
 - Changed: Moved policy, budget, storage, models, lifecycle code, and documentation into `spendguard/` and `docs/core.md`; added public dataclasses/errors/constants, package metadata, and guard tests. Removed obsolete owned server/auth files and requirements. Trimmed the environment example and updated setup documentation.
