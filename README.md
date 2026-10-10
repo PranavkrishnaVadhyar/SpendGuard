@@ -56,10 +56,15 @@ not load `.env`; pass configuration directly. The trimmed `.env.example` is for
 optional integrations. See [docs/core.md](docs/core.md) for the API, dependency
 sources, and limitations. Use a new database path if an old schema exists.
 
+A complete consumer example is in [sample_app](sample_app/README.md). Run
+`.\.venv\Scripts\python.exe sample_app\main.py --reset` from this folder for
+allow/hold/deny examples, or add `--wait` to wait for a dashboard decision.
+Its database is separate at `sample_app/sample.db`.
+
 ### Current status
 
 - Implemented features: dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, adapters, CLI, and dashboard. All 79 current tests pass, including thread/process budget checks; interactive dashboard behavior remains unverified.
-- Known limitations: default execution is a mock; tools and examples are still absent. Interrupted execution recovery is not implemented. Source review identified unresolved executor configuration, adapter success validation, dashboard read-error display, and CLI error-handling issues that the passing tests do not cover.
+- Known limitations: default execution is a mock; automated tool wrappers are still absent. A consumer sample is provided in `sample_app/` but its execution and interactive approval remain unverified. Interrupted execution recovery is not implemented. Source review identified unresolved executor configuration, adapter success validation, dashboard read-error display, and CLI error-handling issues that the passing tests do not cover.
 - Libraries and sources: listed in [core documentation](docs/core.md); no public dataset used.
 
 See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.

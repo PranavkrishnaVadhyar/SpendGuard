@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T02:39:53+05:30 — Add sample package consumer
+
+- Changed: Added `sample_app/main.py` and its README showing public package imports, agent/policy setup, allow/hold/deny purchases, idempotent retries, budget reporting, and optional polling while approving through the dashboard. Linked the sample in the root README.
+- Why: Provide a dedicated directory demonstrating how an application can use SpendGuard with isolated sample state.
+- Validation: Reviewed source and instructions; `.\.venv\Scripts\python.exe -m py_compile sample_app/main.py` completed successfully and `git diff --check` found no whitespace errors. No sample application or interactive dashboard run was performed in this task.
+- Limitations: Default adapters are mocks; background explanations may be interrupted when the sample exits. Existing source-review findings remain unresolved. The user's untracked `test.py` was left untouched.
+
 ## 2026-10-11T02:32:00+05:30 — Run full test suite
 
 - Changed: Updated README, core documentation, and AI usage with the first full runtime test result; no application or test code changed.
