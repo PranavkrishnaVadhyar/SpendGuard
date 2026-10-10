@@ -64,6 +64,11 @@ To use it as another developer's standalone project, follow the sample README
 from inside `sample_app/`: create its own environment and install SpendGuard as
 a dependency from the parent checkout or a separately supplied source path.
 
+[package_release](package_release/README.md) is a standalone package snapshot
+containing only the distributable library, package metadata, and package README.
+Copy that directory to build or install independently. Future source changes in
+`spendguard/` must be copied into that snapshot before a new release is built.
+
 ### Current status
 
 - Implemented features: dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, adapters, CLI, and dashboard. All 79 current tests pass, including thread/process budget checks; interactive dashboard behavior remains unverified.

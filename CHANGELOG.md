@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T02:52:36+05:30 — Assemble standalone package directory
+
+- Changed: Added `package_release/` containing only `pyproject.toml`, a package-focused README, and the 16 library/fixture files under `spendguard/`. Retained runtime extras and removed the development-only extra from the release metadata. Linked the snapshot in the root README.
+- Why: Supply an independently installable/buildable directory with only the files needed to distribute the package, excluding tests, sample apps, development records, environments, databases, and credentials.
+- Validation: All 16 copied files matched the working library by SHA-256. `pip wheel ./package_release --no-deps --wheel-dir .pytest_cache/package-release-validation` succeeded after retrying outside the sandbox for temporary-file access. Inspected the wheel to verify every source/fixture byte, dashboard JSON, optional-only dependencies, and absence of tests, samples, databases, and bytecode. Removed build-generated folders from the package snapshot. No application or test rerun was needed because runtime sources are byte-identical to the previously tested library.
+- Limitations: This is a separate snapshot; later library changes must be copied before rebuilding. Existing review findings remain unchanged. No index publication or separate source-archive build was performed; licensing metadata has not been selected by the project owner. User `test.py` remains untouched.
+
 ## 2026-10-11T02:44:12+05:30 — Explain standalone package consumption
 
 - Changed: Reworked `sample_app/README.md` to run from the consumer directory with its own environment and a normal SpendGuard dependency installation; documented copying the app outside the repository, future index installation, direct API use, and adapter ownership. Linked the standalone workflow in the root README.
