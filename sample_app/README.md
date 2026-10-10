@@ -1,5 +1,9 @@
 # Standalone consumer application
 
+For an interactive LangChain chatbot with guarded demo purchases, see
+[chatbot setup and usage](CHATBOT.md). Run `chatbot.py` with your OpenAI API
+configuration; `langchain_agent.py` remains the offline scripted example.
+
 This directory demonstrates using the installed `spendguard` package from a
 small Python application owned by a package user. This directory can be copied
 outside the SpendGuard repository. It imports the public API directly, without

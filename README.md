@@ -41,7 +41,7 @@ SpendGuard's Python library core has been migrated from the earlier backend and 
 
 Local setup is installed in `.venv` using Python 3.14.3 and
 editable SpendGuard. LangChain 1.4.4 is installed for the optional integration.
-All 96 tests passed in 10.82 seconds, and the offline LangChain example ran
+All 113 tests passed in 13.75 seconds, and the offline LangChain example ran
 successfully. See the changelog for validation details. An interactive dashboard demo has not
 been verified. Refreshing the editable installation currently encounters a
 Windows lock on `.venv/Scripts/spendguard.exe`; close processes using that
@@ -80,6 +80,13 @@ LangChain agents can use [guarded tools](docs/langchain.md). Install
 Allowed calls execute the real wrapped function; held calls require approval
 and execution by the waiting or resumed wrapper. The core dependency set is
 unchanged.
+
+An interactive [sample chatbot](sample_app/CHATBOT.md) now uses a configured
+OpenAI model through LangChain, keeps in-session chat history, and wraps demo
+credit purchases with SpendGuard. Operator commands approve/reject, inspect
+balances, and stop spending. Install its separate `requirements-chatbot.txt`
+and set `OPENAI_API_KEY`/`OPENAI_MODEL`; purchases are simulated and model API
+costs are outside SpendGuard's budget. Live model calls have not been verified.
 
 ### Current status
 

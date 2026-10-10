@@ -1,0 +1,3 @@
+# Install SpendGuard separately from your supplied source directory with [langchain].
+langchain>=1,<2
+langchain-openai>=1,<2

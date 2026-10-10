@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T03:46:08+05:30 — Add interactive guarded chatbot sample
+
+- Changed: Added `sample_app/chatbot.py`, chatbot-only requirements and setup guide, and 17 tests. The terminal chatbot uses LangChain create_agent with an explicitly configured OpenAI model, in-session history, a guarded simulated credit-purchase tool, read-only balance tool, stable per-order retry keys, and operator approval/rejection/resume/kill commands. Linked the sample and updated validation counts in root/sample READMEs and AI usage.
+- Why: Demonstrate how a package consumer builds a conversational agent with SpendGuard enforcement, without giving the model approval authority or blocking chat while a purchase is held.
+- Validation: Installed langchain-openai 1.7.0; `pip check` found no broken requirements (the earlier interrupted editable install still produces an invalid-distribution warning). Chatbot tests: 17 passed in 3.70s. Full suite: 113 passed in 13.75s. Tested real LangChain graphs with scripted local models, multi-turn context, allow/hold/deny, operator/external approval, rejection, kill/resume, retry protection, restart recovery through original order IDs, terminal flow, missing configuration, and redacted provider errors. CLI `--help`, documentation links, and diff whitespace checked. The initial history test reused one fake AIMessage ID; corrected the test fixture to supply distinct replies, matching normal model behavior.
+- Limitations: Live OpenAI calls were not made; model availability and interactive dashboard behavior remain unverified. Purchases are simulated; model usage is not budgeted. Conversation/session mappings live in memory, while SQLite retains spending records. After restart, reissue the original order ID and quantity before approval/resume. Fixed sample policy is registered at startup; explicit `--reset` clears the selected database's requests and kill state. No runtime library or standalone package changes were needed. Human review pending; user `test.py` preserved; no remote push.
+
 ## 2026-10-11T03:20:47+05:30 — Add guarded LangChain tools
 
 - Changed: Added optional `langchain` extra and `spendguard.integrations.langchain.wrap_tool`; persisted tool arguments/results with reservations and idempotency checks; deferred external approvals to the waiting/resumed wrapper instead of default mock adapters. Added 17 integration tests and `sample_app/langchain_agent.py`; updated core, sample, root, release, and AI documentation; synchronized 18 runtime files into `package_release/`.
