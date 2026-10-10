@@ -41,7 +41,8 @@ SpendGuard's Python library core has been migrated from the earlier backend. It 
 
 Local setup is installed in `.venv` using Python 3.14.3 and
 `pip install -e ".[dev]"`. `pip check` reported no broken requirements on
-11 October 2026. Application behavior and tests remain unverified.
+11 October 2026. The full test suite passed: 79 tests in 10.14 seconds on
+11 October 2026. An interactive demo has not been verified.
 To reproduce the setup:
 
 1. Install Python 3.10+ and create a virtual environment: `python -m venv .venv`.
@@ -57,8 +58,8 @@ sources, and limitations. Use a new database path if an old schema exists.
 
 ### Current status
 
-- Authored features (unverified): dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, and library tests.
-- Known limitations: editable installation and dependency consistency were checked; application behavior and tests remain unverified. Default execution is a mock. Dashboard and CLI source is present; tools and examples are still absent. Interrupted execution recovery is not implemented.
+- Implemented features: dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, adapters, CLI, and dashboard. All 79 current tests pass, including thread/process budget checks; interactive dashboard behavior remains unverified.
+- Known limitations: default execution is a mock; tools and examples are still absent. Interrupted execution recovery is not implemented. Source review identified unresolved executor configuration, adapter success validation, dashboard read-error display, and CLI error-handling issues that the passing tests do not cover.
 - Libraries and sources: listed in [core documentation](docs/core.md); no public dataset used.
 
 See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.

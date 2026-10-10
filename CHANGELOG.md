@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T02:32:00+05:30 — Run full test suite
+
+- Changed: Updated README, core documentation, and AI usage with the first full runtime test result; no application or test code changed.
+- Why: Fulfill the user's request to run tests and replace pending-validation claims with observed results.
+- Validation: `.\.venv\Scripts\python.exe -m pytest -q` initially reported 32 passed and 47 setup errors because the sandbox blocked pytest temporary directory creation. The authorized rerun outside the sandbox completed with **79 passed in 10.14s** and exit code 0 on Python 3.14.3.
+- Limitations: Interactive dashboard/demo and release packaging not checked. The four preceding source-review findings remain unresolved; passing existing tests does not validate those uncovered cases.
+
 ## 2026-10-11T02:29:48+05:30 — Install local development environment
 
 - Changed: Created ignored `.venv` with Python 3.14.3 and installed editable SpendGuard 0.1.0 with development extras; updated README, core documentation, and AI usage with actual setup status.

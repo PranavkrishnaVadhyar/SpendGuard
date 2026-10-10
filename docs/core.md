@@ -2,8 +2,9 @@
 
 The library and development extras were installed in the local `.venv` with
 Python 3.14.3 on 11 October 2026. Editable package build succeeded and `pip check`
-reported no broken requirements. Application execution, import smoke checks,
-tests, integration, and concurrency validation remain pending at the user's request.
+reported no broken requirements. On 11 October 2026, the full pytest suite passed:
+79 tests in 10.14 seconds, including thread/process budget, lifecycle, adapter,
+explainer, and CLI checks. An interactive dashboard demo remains unverified.
 
 ## Installation and first request
 
@@ -163,5 +164,7 @@ Tests use [pytest](https://docs.pytest.org/). Optional extras use
 [Streamlit](https://streamlit.io/) and the
 [OpenAI Python SDK](https://github.com/openai/openai-python).
 No public datasets or external project implementations were imported.
-Runtime behavior above remains pending validation. Local editable packaging and
+The current 79 tests pass; source-review findings about executor configuration,
+adapter result validation, dashboard read errors, and CLI error handling remain
+unresolved and are not covered by those tests. Local editable packaging and
 dependency consistency have been checked; a distributable release build has not.
