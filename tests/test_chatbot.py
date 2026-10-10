@@ -3,10 +3,19 @@ import json
 import pytest
 
 pytest.importorskip("langchain")
+pytest.importorskip("dotenv")
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage, ToolMessage
 
 from sample_app.chatbot import Chatbot, main, make_guard
+import sample_app.chatbot as chatbot_module
+
+
+@pytest.fixture(autouse=True)
+def isolate_environment_file(tmp_path, monkeypatch):
+    # Never load a developer's actual credentials during tests.
+    monkeypatch.setattr(chatbot_module, "DEFAULT_ENV_FILE", tmp_path / ".env")
+    monkeypatch.delenv("PYTHON_DOTENV_DISABLED", raising=False)
 
 
 class ScriptedModel(FakeMessagesListChatModel):
@@ -134,3 +143,54 @@ def test_model_error_is_visible_without_dumping_credentials(tmp_path, monkeypatc
     output = capsys.readouterr().out
     assert "Chat failed (RuntimeError)" in output
     assert "private-provider-detail" not in output and "not-a-real-key" not in output
+
+
+@pytest.mark.parametrize("source", ["default", "custom"])
+def test_env_file_loads_without_terminal_variables(tmp_path, monkeypatch, capsys, source):
+    provider = pytest.importorskip("langchain_openai")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    env_file = tmp_path / (".env" if source == "default" else "custom.env")
+    env_file.write_text('OPENAI_API_KEY="fake-file-key"\nOPENAI_MODEL="file-model"\n', encoding="utf-8")
+    selected = []
+
+    def local_model(**kwargs):
+        assert chatbot_module.os.environ["OPENAI_API_KEY"] == "fake-file-key"
+        selected.append(kwargs["model"])
+        return ScriptedModel(responses=[AIMessage(content="Hi")])
+
+    monkeypatch.setattr(provider, "ChatOpenAI", local_model)
+    monkeypatch.setattr("builtins.input", lambda prompt: "/exit")
+    arguments = ["--db", str(tmp_path / "from-env.db")]
+    if source == "custom":
+        arguments += ["--env-file", str(env_file)]
+    try:
+        assert main(arguments) == 0
+        assert selected == ["file-model"]
+        assert "fake-file-key" not in capsys.readouterr().out
+    finally:
+        # dotenv writes to os.environ directly, so clean its additions explicitly.
+        chatbot_module.os.environ.pop("OPENAI_API_KEY", None)
+        chatbot_module.os.environ.pop("OPENAI_MODEL", None)
+
+
+@pytest.mark.parametrize("cli_model,expected", [(None, "terminal-model"), ("cli-model", "cli-model")])
+def test_terminal_and_cli_override_env_file(tmp_path, monkeypatch, cli_model, expected):
+    provider = pytest.importorskip("langchain_openai")
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=file-key\nOPENAI_MODEL=file-model\n", encoding="utf-8")
+    monkeypatch.setenv("OPENAI_API_KEY", "terminal-key")
+    monkeypatch.setenv("OPENAI_MODEL", "terminal-model")
+    selected = []
+
+    def local_model(**kwargs):
+        assert chatbot_module.os.environ["OPENAI_API_KEY"] == "terminal-key"
+        selected.append(kwargs["model"])
+        return ScriptedModel(responses=[AIMessage(content="Hi")])
+
+    monkeypatch.setattr(provider, "ChatOpenAI", local_model)
+    monkeypatch.setattr("builtins.input", lambda prompt: "/exit")
+    arguments = ["--db", str(tmp_path / "override.db")]
+    if cli_model:
+        arguments += ["--model", cli_model]
+    assert main(arguments) == 0
+    assert selected == [expected]

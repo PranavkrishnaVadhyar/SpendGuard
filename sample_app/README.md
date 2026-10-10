@@ -2,7 +2,8 @@
 
 For an interactive LangChain chatbot with guarded demo purchases, see
 [chatbot setup and usage](CHATBOT.md). Run `chatbot.py` with your OpenAI API
-configuration; `langchain_agent.py` remains the offline scripted example.
+configuration in the ignored `.env` beside it; `langchain_agent.py` remains the
+offline scripted example. Copy `.env.example` only when creating a new `.env`.
 
 This directory demonstrates using the installed `spendguard` package from a
 small Python application owned by a package user. This directory can be copied

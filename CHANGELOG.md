@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T04:29:35+05:30 — Load chatbot configuration from an environment file
+
+- Changed: Added python-dotenv to chatbot-only requirements and automatic loading of `sample_app/.env`, with an optional `--env-file` path. Terminal variables override file values; `--model` overrides both. Added a blank `sample_app/.env.example`, four loading/precedence cases, test isolation from real credentials, and updated setup documentation. Created/populated the ignored chatbot `.env` from existing local configuration without displaying credential values; preserved existing nonempty chatbot settings.
+- Why: Let the chatbot start using a local configuration file instead of requiring API settings to be entered in each terminal session.
+- Validation: Installed python-dotenv 1.2.4; chatbot tests passed (21 in 3.35s); full suite passed (117 in 13.16s). Verified CLI help, Git ignores for the real `.env`, blank example, documentation links, and diff whitespace. `pip check` found no broken requirements, with the existing invalid-distribution warning from an earlier interrupted install. No live model calls or payments were made.
+- Limitations: Keys/models were copied locally but not verified with the provider. Existing environment variables (including empty ones) take priority over file values. Configuration loading is limited to the chatbot sample; core library and other examples retain their behavior. Human review pending; real `.env` excluded from Git; user `test.py` preserved.
+
 ## 2026-10-11T03:46:08+05:30 — Add interactive guarded chatbot sample
 
 - Changed: Added `sample_app/chatbot.py`, chatbot-only requirements and setup guide, and 17 tests. The terminal chatbot uses LangChain create_agent with an explicitly configured OpenAI model, in-session history, a guarded simulated credit-purchase tool, read-only balance tool, stable per-order retry keys, and operator approval/rejection/resume/kill commands. Linked the sample and updated validation counts in root/sample READMEs and AI usage.

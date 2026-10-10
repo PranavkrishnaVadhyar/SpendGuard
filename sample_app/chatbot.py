@@ -17,6 +17,7 @@ from spendguard.integrations.langchain import wrap_tool
 
 AGENT_ID = "chatbot"
 DEFAULT_DB = Path(__file__).with_name("chatbot.db")
+DEFAULT_ENV_FILE = Path(__file__).with_name(".env")
 OrderId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,80}$")]
 Quantity = Annotated[int, Field(strict=True, ge=1)]
 HELP = """Commands (typed directly by the operator):
@@ -156,11 +157,24 @@ def make_guard(db_path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL"))
+    parser.add_argument("--model", help="Override OPENAI_MODEL")
+    parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE,
+                        help="Configuration file (default: .env beside chatbot.py)")
     parser.add_argument("--reset", action="store_true", help="Clear requests and kill state in the selected database")
     args = parser.parse_args(argv)
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(args.env_file, override=False, interpolate=False, encoding="utf-8-sig")
+    except ImportError:
+        print("Install python-dotenv using the chatbot requirements file.")
+        return 1
+    except (OSError, UnicodeError):
+        print("Could not read the environment file. Check its path, permissions, and UTF-8 encoding.")
+        return 1
+    args.model = args.model or os.environ.get("OPENAI_MODEL")
     if not os.environ.get("OPENAI_API_KEY", "").strip():
-        print("Set OPENAI_API_KEY in this terminal. No .env file is loaded automatically.")
+        print("Set OPENAI_API_KEY in the chatbot .env file or this terminal.")
         return 1
     if not args.model or not args.model.strip():
         print("Set OPENAI_MODEL or pass --model with a tool-calling model available to your account.")

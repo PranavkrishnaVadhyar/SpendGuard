@@ -12,16 +12,28 @@ From the **SpendGuard repository root**, using the existing environment:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r sample_app\requirements-chatbot.txt
-$env:OPENAI_API_KEY = "your-api-key"
-$env:OPENAI_MODEL = "your-tool-calling-model"
+# First-time setup only, if sample_app/.env does not already exist:
+if (-not (Test-Path sample_app\.env)) { Copy-Item sample_app\.env.example sample_app\.env }
+# Edit sample_app/.env with your key and model before launching.
 .\.venv\Scripts\python.exe sample_app\chatbot.py
 ```
 
-Replace both placeholders with your configuration. Use a model supporting tool
-calling that is available to your account. You can pass `--model MODEL_NAME`
-instead of setting `OPENAI_MODEL`. The sample deliberately requires an explicit
-model choice. Environment files are not loaded automatically. Keys belong in
-the environment, not in the application source. See the official
+The chatbot loads `.env` beside `chatbot.py`, regardless of your working
+directory. Set the following values there (the committed `.env.example` has
+blank fields; the real `.env` is ignored by Git):
+
+```dotenv
+OPENAI_API_KEY=your-api-key
+OPENAI_MODEL=your-tool-calling-model
+```
+
+Use a model supporting tool calling that is available to your account.
+Existing terminal environment variables take precedence over the file.
+`--model MODEL_NAME` overrides both. `--env-file PATH` selects a different file;
+relative custom paths are resolved from the current working directory.
+Values are loaded literally without variable interpolation. Keep keys in
+the ignored file or terminal environment, not in application source. Loading
+uses [python-dotenv](https://github.com/theskumar/python-dotenv). See the official
 [OpenAI API setup](https://developers.openai.com/api/docs/quickstart) and
 [LangChain ChatOpenAI integration](https://docs.langchain.com/oss/python/integrations/chat/openai).
 
@@ -32,7 +44,8 @@ environment inside it and install your supplied SpendGuard source directory:
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install "C:\path\to\package_release[langchain]"
 .\.venv\Scripts\python.exe -m pip install -r requirements-chatbot.txt
-# Set OPENAI_API_KEY and OPENAI_MODEL in this terminal as above.
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# Edit .env with OPENAI_API_KEY and OPENAI_MODEL before launching.
 .\.venv\Scripts\python.exe chatbot.py
 ```
 
@@ -118,7 +131,9 @@ With pytest and the chatbot requirements installed, run from the repository root
 .\.venv\Scripts\python.exe -m pytest tests\test_chatbot.py -q
 ```
 
-The chatbot's 17 tests passed; the full repository suite passed with 113 tests.
+Tests include .env loading, custom paths, configuration precedence, and ensuring
+fake keys are not printed. Live credentials are never loaded by these tests.
+All 117 repository tests passed in 13.16 seconds.
 
 Tools use the existing synchronous StructuredTool integration. Unwrapped
 operations and model usage are outside its budget. The local operator/SQLite
