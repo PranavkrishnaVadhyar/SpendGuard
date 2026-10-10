@@ -1,0 +1,13 @@
+{
+  "kill_global": false,
+  "agents": [
+    {"id": "research-bot", "name": "Research Bot", "status": "active", "daily_budget": 50.0, "spent": 18.75, "reserved": 12.0, "available": 19.25},
+    {"id": "market-watch", "name": "Market Watch", "status": "active", "daily_budget": 30.0, "spent": 8.5, "reserved": 0.0, "available": 21.5}
+  ],
+  "requests": [
+    {"id": "req-104", "agent_id": "research-bot", "merchant": "openai.com", "amount": 4.25, "reason": "Summarize the latest clinical trial papers", "status": "settled", "decision_reason": "Within policy and budget", "explanation": null, "receipt_id": "rcpt_a13f01bd", "approver": null, "created_at": "2026-10-10T20:25:00+05:30", "decided_at": "2026-10-10T20:25:01+05:30", "expires_at": null},
+    {"id": "req-103", "agent_id": "research-bot", "merchant": "aws.amazon.com", "amount": 12.0, "reason": "Run a larger batch of paper embeddings", "status": "pending_approval", "decision_reason": "Human approval required", "explanation": "This request is for $12.00 at aws.amazon.com to run a larger batch of paper embeddings. The agent has spent $18.75 of its $50.00 daily budget, with $12.00 reserved.", "receipt_id": null, "approver": null, "created_at": "2026-10-10T20:28:00+05:30", "decided_at": null, "expires_at": "2026-10-10T21:28:00+05:30"},
+    {"id": "req-102", "agent_id": "market-watch", "merchant": "serpapi.com", "amount": 2.5, "reason": "Search for quarterly filings", "status": "denied", "decision_reason": "Daily limit exceeded", "explanation": null, "receipt_id": null, "approver": null, "created_at": "2026-10-10T20:20:00+05:30", "decided_at": "2026-10-10T20:20:00+05:30", "expires_at": null},
+    {"id": "req-101", "agent_id": "research-bot", "merchant": "openai.com", "amount": 3.0, "reason": "Extract table from a public report", "status": "cancelled", "decision_reason": "Agent stopped request", "explanation": null, "receipt_id": null, "approver": null, "created_at": "2026-10-10T20:15:00+05:30", "decided_at": "2026-10-10T20:16:00+05:30", "expires_at": null}
+  ]
+}
