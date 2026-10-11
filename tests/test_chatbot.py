@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 
 import pytest
 
@@ -53,13 +54,33 @@ def test_restart_keeps_dashboard_team_edits(bot):
 def test_agent_purchase_tool(bot, quantity, status):
     bot.agent = Chatbot(bot.guard, ScriptedModel(responses=[
         AIMessage(content="", tool_calls=[{"name": "buy_demo_credits", "args": {
-            "order_id": "order-1", "quantity": quantity}, "id": "call-1"}]),
+            "quantity": quantity}, "id": "call-1"}]),
         AIMessage(content="Check tool result"),
     ])).agent
-    messages = bot.chat("Buy demo credits with order ID order-1")
+    messages = bot.chat(f"Buy {quantity} demo credits")
     result = json.loads(next(m.content for m in messages if isinstance(m, ToolMessage)))
     assert result["status"] == status
+    assert str(UUID(result["order_id"])) == result["order_id"]
     assert (result["result"] is not None) == (status == "settled")
+
+
+def test_generated_orders_are_distinct_and_retries_spend_once(bot):
+    first = bot.submit_purchase(None, 1)
+    second = bot.submit_purchase(None, 1)
+    assert first["order_id"] != second["order_id"]
+    assert first["request_id"] != second["request_id"]
+    assert bot.submit_purchase(first["order_id"], 1) == first
+    assert bot.status()["agent"]["spent"] == 20
+
+
+def test_generated_order_survives_operator_approval(bot):
+    held = bot.submit_purchase(None, 3)
+    approved = bot.command(f"/approve {held['request_id']}")
+    assert approved["status"] == "settled"
+    assert approved["order_id"] == held["order_id"]
+    assert approved["result"]["order_id"] == held["order_id"]
+    assert bot.submit_purchase(held["order_id"], 3) == approved
+    assert bot.status()["agent"]["spent"] == 30
 
 
 def test_operator_approval_and_retry_only_spends_once(bot):

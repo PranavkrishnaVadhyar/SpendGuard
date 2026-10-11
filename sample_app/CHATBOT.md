@@ -63,15 +63,15 @@ demo policy values remain fixed by this sample's startup code.
 
 ```text
 You: Hello! What can you do?
-You: Buy 1 demo credit with order ID order-1.
+You: Buy 1 demo credit.
 Tool result: ... "status": "settled" ...
 
-You: Buy 3 demo credits with order ID order-2.
+You: Buy 3 demo credits.
 Tool result: ... "status": "pending_approval", "request_id": 2 ...
 You: /approve 2
 ... "status": "settled" ...
 
-You: Buy 8 demo credits with order ID order-3.
+You: Buy 8 demo credits.
 Tool result: ... "status": "denied" ...
 You: /status
 You: /exit
@@ -116,9 +116,17 @@ After dashboard approval, type `/resume ID` in the chatbot. The sample uses
 Approvals expire after 300 seconds if undecided. After approval, reservation
 continues until execution or cancellation; there is no automatic worker here.
 
+The application generates a random UUID for each new purchase; users do not
+need to supply one. It appears as `order_id` in every purchase tool result,
+including holds and denials. The chatbot reuses that returned ID for retries
+within the conversation; an ambiguous retry needs clarification. Approval/resume
+commands reuse saved inputs and never generate another UUID. Explicit IDs remain
+supported for existing orders and programmatic callers.
+
 An order ID identifies one purchase. Retrying with the same order ID and
 quantity returns the saved state/result instead of buying again. Changing the
-quantity for an existing ID is denied. Use a new ID for a new purchase. After
+quantity for an existing ID is denied. Omitting it creates a new purchase, so
+never omit it when retrying an existing one. After
 restarting the chatbot, reissue the same order ID and quantity to restore its
 session mapping, then approve/resume if needed. The command rejects approval
 when the current session has no saved inputs. Chat history and that mapping

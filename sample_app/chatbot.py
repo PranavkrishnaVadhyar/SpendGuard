@@ -33,15 +33,18 @@ HELP = """Commands (typed directly by the operator):
   /unpause      Re-enable this chatbot's spending
   /help         Show commands
   /exit         Exit
-Try: Buy 1 demo credit with order ID order-1.
-Try: Buy 3 demo credits with order ID order-2.
-Try: Buy 8 demo credits with order ID order-3.
+Try: Buy 1 demo credit.
+Try: Buy 3 demo credits.
+Try: Buy 8 demo credits.
 """
 SYSTEM_PROMPT = """You are a helpful chatbot demonstrating SpendGuard spending controls.
 Chat normally and use tools when appropriate. Demo credits cost $10 each.
-Only call buy_demo_credits when the user explicitly requests a purchase and
-provides an order ID; ask for an ID if missing. Reuse that ID for retries of the
-same purchase. Never change an ID or split a purchase to bypass a denial.
+Only call buy_demo_credits when the user explicitly requests a purchase.
+For a new purchase omit order_id: the application generates a UUID. Never ask
+the user to invent an ID or generate one yourself. For retries of the same
+purchase, reuse the order_id returned by the tool. If the intended prior order
+is ambiguous, clarify which purchase to retry. Never omit or change an existing
+ID or split a purchase to bypass a denial. A new ID means a new purchase.
 Read the tool result: only settled means executed. Pending means waiting for
 human approval, not purchased. Tell the user the request ID and /approve ID or
 /reject ID commands for held calls. You cannot approve, reject, reset, or change
@@ -71,9 +74,11 @@ class Chatbot:
         )
 
         @tool
-        def buy_demo_credits(order_id: OrderId, quantity: Quantity, config: RunnableConfig) -> dict:
-            """Request demo credits at $10 each. User must supply a unique order ID;
-            reuse it for retries. Pending purchases need operator approval.
+        def buy_demo_credits(quantity: Quantity, config: RunnableConfig,
+                             order_id: OrderId | None = None) -> dict:
+            """Request demo credits at $10 each. Omit order_id for a new purchase;
+            the application generates a UUID. For a retry reuse the returned
+            order_id. Pending purchases need operator approval.
             """
             return self.submit_purchase(order_id, quantity,
                                         (config.get("metadata") or {}).get("spendguard_trace_id"))
@@ -87,7 +92,9 @@ class Chatbot:
                                   system_prompt=SYSTEM_PROMPT)
 
     def submit_purchase(self, order_id, quantity, trace_id=None):
-        # Business IDs are per purchase, rather than shared across an agent run.
+        # Generate once, before reservation, and reuse for approval/retry.
+        if order_id is None:
+            order_id = str(uuid4())
         if not isinstance(order_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", order_id):
             raise ValueError("order ID must contain 1-80 letters, numbers, underscores, or hyphens")
         if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
@@ -99,7 +106,7 @@ class Chatbot:
         })
         if result["request_id"] is not None:
             self.orders[result["request_id"]] = inputs
-        return result
+        return {**result, "order_id": order_id}
 
     def status(self):
         status = self.guard.status()

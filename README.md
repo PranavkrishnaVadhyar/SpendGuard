@@ -90,8 +90,11 @@ unchanged.
 An interactive [sample chatbot](sample_app/CHATBOT.md) now uses a configured
 OpenAI model through LangChain, keeps in-session chat history, and wraps demo
 credit purchases with SpendGuard. Operator commands approve/reject, inspect
-balances, and stop spending. Install its separate `requirements-chatbot.txt`
-and set `OPENAI_API_KEY`/`OPENAI_MODEL` in the ignored `sample_app/.env` file;
+balances, and stop spending.
+New purchases receive application-generated UUID order IDs automatically;
+the chatbot reuses returned IDs for retries and approval commands retain them.
+Install its separate `requirements-chatbot.txt` and set
+`OPENAI_API_KEY`/`OPENAI_MODEL` in the ignored `sample_app/.env` file;
 existing terminal variables and the `--model` option can override it.
 Purchases are simulated. Model tokens are tracked after responses; optional
 configured USD rates produce cost estimates that reduce later available funds.

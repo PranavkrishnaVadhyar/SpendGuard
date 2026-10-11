@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T06:54:50+05:30 — Generate chatbot order UUIDs automatically
+
+- Changed: Made the model-facing purchase tool's order ID optional and generate a UUID in application code before submitting a new purchase. Included the ID in all purchase results and preserved it through operator approval/resume and explicit retries. Updated system/tool instructions, prompt examples, root README, and chatbot guide; existing explicit IDs still work.
+- Why: Users can request a purchase without inventing an identifier while retaining idempotency for a known order.
+- Validation: All 24 chatbot tests passed in 5.55s with scripted LangChain models and temporary databases, including omitted IDs for settle/hold/deny, distinct UUIDs for separate purchases, retry deduplication, and approval preserving the generated ID. Diff whitespace reviewed. No live API calls or payments; no core/package runtime changes or release archive rebuild needed.
+- Limitations: Omitting an ID always creates a new order; conversational retries rely on the model reusing the returned ID. Ambiguous retry intent must be clarified. Conversation/session mapping remains in memory; restart recovery uses the saved order ID/quantity as documented. Human review pending.
+
 ## 2026-10-11T06:32:00+05:30 — Prepare spnd-guard for PyPI
 
 - Changed: Renamed the distribution in root and standalone metadata to `spnd-guard` version 0.1.0, preserving Python imports, CLI, configuration, and database compatibility. Added README metadata at the root, alpha/OS/Python classifiers, keywords, verified repository URLs, consumer install examples, and `docs/publishing.md` with secure PyPI/TestPyPI upload and verification steps.
