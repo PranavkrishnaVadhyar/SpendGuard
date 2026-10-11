@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T07:04:14+05:30 — Replace template README with project documentation
+
+- Changed: Replaced the main event-template README with SpendGuard project documentation: purpose and before/after comparison, implemented features, distribution/import distinction, source and conditional PyPI installation, core example, chatbot/env/UUID/approval usage, dashboard and email setup, offline demos, tests, layout, and limitations. Kept event records linked from a short development section.
+- Why: Give repository visitors a useful project overview and reproducible entry points instead of template setup instructions.
+- Validation: All 12 local README links resolve; checked examples and commands against current source/metadata and reviewed diff whitespace. Documentation only; no application, tests, builds, publication, or external calls run.
+- Limitations: Preserved honest prior full-suite/targeted test results and unverified publication/live integration status. Human review pending.
+
 ## 2026-10-11T06:58:45+05:30 — Review all project READMEs
 
 - Changed: Reviewed root, sample, and standalone package READMEs. Added missing UUID purchase instructions and distribution/import distinction to the sample README; clarified its optional dependencies and verified wheel/test status. Updated root validation wording to distinguish the prior full-suite run from the latest 24 chatbot tests and avoid assuming the user's upload status. Package README remains accurate and unchanged.

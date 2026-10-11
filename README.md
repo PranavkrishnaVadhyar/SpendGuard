@@ -1,126 +1,230 @@
-# DevDay Exchange Community Hackathon: Kochi
+# SpendGuard — spnd-guard
 
-A repository template for participants at the 10–11 October 2026 hackathon. It contains event rules and documentation scaffolding; build your project from scratch at the event.
+SpendGuard is a Python library that puts spending controls around AI agent
+actions. Your application defines budgets, permitted merchants, and approval
+thresholds; SpendGuard checks each paid operation before allowing it to run.
+Requests live in SQLite, with a local dashboard for reviewing spending,
+approving purchases, and stopping further activity.
 
-**[Event and registration on Luma](https://luma.com/z10nz8gp)** · **[Event rules](RULES.md)** · **[Agent instructions](AGENTS.md)**
+**Distribution:** `spnd-guard` · **Import:** `spendguard` ·
+**CLI:** `spendguard` · **Version:** `0.1.0` · **Python:** `3.10+`
 
-## Event details
+Default payment adapters and sample credit purchases are simulations. The
+LangChain chatbot can make real model API calls using your provider account.
 
-| Detail | Information |
+## Why use it?
+
+An agent with a paid tool can repeatedly buy credits or consume services.
+SpendGuard gives the application a consistent place to enforce limits and
+require human review before executing that tool.
+
+| Without application spending controls | With SpendGuard integrated |
 | --- | --- |
-| Venue | JAIN University, Kochi |
-| Location | [Open the venue map](https://maps.app.goo.gl/Eme7gR7NDXSNRANu5) |
-| Rooms | 2008 and 2009 |
-| Check-in | 10 October 2026, 6:00 PM IST |
-| Kick-off | 10 October 2026, 6:30 PM IST |
-| Wrap-up | 11 October 2026, by 10:00 AM IST |
-| Participation | Solo or a team of up to 4 participants |
-| Theme | Open — build anything you like |
+| Each paid tool needs its own budget checks | One policy controls declared tool costs |
+| Expensive purchases can execute immediately | Purchases above a threshold wait for approval |
+| Concurrent calls compete for the same balance | SQLite transactions reserve agent and team funds |
+| A retry can execute another purchase | The same idempotency key returns saved state/results |
+| Activity is scattered across tool logs | Requests, usage, and workflow events share a dashboard |
 
-Keep your approved Luma QR code ready for entry, and bring your laptop and charger. Eligible checked-in participants will receive Codex credits and OpenAI API credits.
+Only operations routed through SpendGuard are controlled. Model usage tracking
+is after-response accounting; it does not stop an in-flight model call.
 
-## Use this template
+## Features
 
-1. Select **Use this template → Create a new repository** on GitHub. Create your own project repository and clone it.
-2. Read [RULES.md](RULES.md) and [AGENTS.md](AGENTS.md) before building. Begin project implementation at the event.
-3. Fill in the project overview below as you build. Use any suitable language or framework, keeping the implementation simple.
-4. Record meaningful changes in [CHANGELOG.md](CHANGELOG.md) and your Codex usage in [AI_USAGE.md](AI_USAGE.md). Commit after completed milestones; aim for a meaningful checkpoint about every 30 minutes.
-5. Complete [SUBMISSION.md](SUBMISSION.md) with your code repository, short project description, and working demo. Follow submission instructions announced by the organizers.
+- Per-agent daily budgets, transaction caps, and merchant allowlists.
+- Human approval with expiring holds and reserved funds.
+- Shared team budgets with atomic reservations and membership snapshots.
+- Global and per-agent kill switches, plus resume controls.
+- Idempotent requests, stored results, and a durable request feed.
+- Optional LangChain wrappers for synchronous `StructuredTool` tools.
+- Model token tracking and cost estimates using configured rates.
+- Workflow/session tracing for models, tools, and purchase transitions.
+- Streamlit dashboard for approvals, usage, workflows, teams, and email.
+- Email outbox with explicit SMTP send/retry and budget warnings.
+- A core library with no third-party runtime dependencies.
 
-SpendGuard's Python library core has been migrated from the earlier backend and tested. The documentation and commit cadence are repository workflow guidance; the event participation rules are in [RULES.md](RULES.md).
+## Installation
 
-## Project overview — complete during the event
+From a source checkout, in PowerShell:
 
-- **Project name:** SpendGuard
-- **PyPI distribution:** `spnd-guard`; Python import and CLI: `spendguard`.
-- **Short description:** A Python library for agent spend controls with deterministic budgets, human approvals, and kill switches. Payments are mocked by default.
-- **Team:** TODO — participant names and GitHub handles; maximum 4 members.
-- **Working demo:** [Offline dashboard demo](docs/dashboard.md), validated in tests; live provider/email/browser walkthrough remains unverified.
-- **Technology stack:** Python 3.10+ standard library and SQLite; optional LangChain, OpenAI provider, Streamlit, and python-dotenv; setuptools packaging.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dashboard,langchain]"
+```
 
-### Run the project
+For just the core, install with `-e .`. Other extras are `openai`, `all`, and
+the repository's `dev` extra. Install your model-provider integration separately;
+the chatbot requirements below include `langchain-openai`.
 
-Local setup is installed in `.venv` using Python 3.14.3 and
-editable SpendGuard. LangChain 1.4.4 is installed for the optional integration.
-The test suite covers the core, LangChain agent, and dashboard with scripted
-models, temporary SQLite files, and mocked SMTP. See the changelog for exact
-counts and validation details (last full-suite run: 142 tests passed in 22.67
-seconds; after the UUID change: all 24 chatbot tests passed in 5.55 seconds).
-The release wheel also passed fresh-environment installation and core smoke
-checks. No live model calls, emails, or real payments
-were used. A live browser walkthrough has not been verified. Refreshing the editable installation currently encounters a
-Windows lock on `.venv/Scripts/spendguard.exe`; close processes using that
-executable before reinstalling. Module commands remain available through
-`python -m spendguard.cli`.
-To reproduce the setup:
+The prepared PyPI name is `spnd-guard`. Publication has not been verified in
+this repository's validation record. Once available on PyPI, consumers can use:
 
-1. Install Python 3.10+ and create a virtual environment: `python -m venv .venv`.
-2. Install the core: `.\.venv\Scripts\python -m pip install -e .`.
-3. For tests, install pytest: `.\.venv\Scripts\python -m pip install pytest`. Optional full extras: `.\.venv\Scripts\python -m pip install -e ".[dev]"`.
-4. Use `from spendguard import SpendGuard, Policy`, construct a guard with a database path, then call `create_agent` and `request`; see the complete [example](docs/core.md).
-5. Run tests when authorized: `.\.venv\Scripts\python -m pytest -q`.
+```powershell
+python -m pip install "spnd-guard[langchain,dashboard]"
+```
 
-Construction creates tables without demo agents or wiping data. The core does
-not load `.env`; pass configuration directly. The trimmed `.env.example` is for
-optional integrations. See [docs/core.md](docs/core.md) for the API, dependency
-sources, and limitations. Use a new database path if an old schema exists.
+Use a fresh environment when switching from the earlier local `spendguard`
+distribution: both install the same Python modules and CLI. If Windows locks
+`spendguard.exe` during reinstall, close processes using it first.
 
-A complete consumer example is in [sample_app](sample_app/README.md). Run
-`.\.venv\Scripts\python.exe sample_app\main.py --reset` from this folder for
-allow/hold/deny examples, or add `--wait` to wait for a dashboard decision.
-Its database is separate at `sample_app/sample.db`.
-To use it as another developer's standalone project, follow the sample README
-from inside `sample_app/`: create its own environment and install SpendGuard as
-a dependency from the parent checkout or a separately supplied source path.
+## Use the library
 
-[package_release](package_release/README.md) is a standalone package snapshot
-containing only the distributable library, package metadata, and package README.
-Copy that directory to build or install independently. Future source changes in
-`spendguard/` must be copied into that snapshot before a new release is built.
-See the [PyPI publishing guide](docs/publishing.md) for build, validation, secure
-upload, and consumer installation steps. Version 0.1.0 is prepared locally;
-publication has not been verified. Once published, consumers can install
-`python -m pip install "spnd-guard[langchain,dashboard]"`.
+```python
+from spendguard import Policy, SpendGuard
 
-LangChain agents can use [guarded tools](docs/langchain.md). Install
-`python -m pip install -e ".[langchain]"`, import
-`wrap_tool` from `spendguard.integrations.langchain`, and pass wrapped tools to
-`create_agent`. The offline example is `python sample_app/langchain_agent.py`.
-Allowed calls execute the real wrapped function; held calls require approval
-and execution by the waiting or resumed wrapper. The core dependency set is
-unchanged.
+guard = SpendGuard("agent.db")
+guard.create_agent(
+    "research-bot",
+    Policy(
+        daily_budget=50,
+        per_txn_cap=100,
+        approval_threshold=25,
+        allowlist=["openai.com", "aws.amazon.com"],
+    ),
+)
 
-An interactive [sample chatbot](sample_app/CHATBOT.md) now uses a configured
-OpenAI model through LangChain, keeps in-session chat history, and wraps demo
-credit purchases with SpendGuard. Operator commands approve/reject, inspect
-balances, and stop spending.
-New purchases receive application-generated UUID order IDs automatically;
-the chatbot reuses returned IDs for retries and approval commands retain them.
-Install its separate `requirements-chatbot.txt` and set
-`OPENAI_API_KEY`/`OPENAI_MODEL` in the ignored `sample_app/.env` file;
-existing terminal variables and the `--model` option can override it.
-Purchases are simulated. Model tokens are tracked after responses; optional
-configured USD rates produce cost estimates that reduce later available funds.
-Unknown costs are shown explicitly. Live model calls have not been verified.
+result = guard.request(
+    "research-bot", "openai.com", 10,
+    reason="Research credits", idempotency_key="research-purchase-001",
+)
+print(result.decision, result.status, result.receipt_id)
+```
 
-The [expanded dashboard](docs/dashboard.md) adds model usage, workflow events,
-shared team budgets, and an email outbox. Configure optional pricing and SMTP
-settings in the ignored sample `.env` using [insights setup](docs/insights.md):
+Decisions are `allow`, `hold`, or `deny`. Only `settled` means execution
+succeeded. Held requests reserve funds while awaiting human approval.
+Reuse a purchase's key for retries; use a new key for an independent purchase.
+
+Default adapters simulate payments to `openai.com`, `serpapi.com`, and
+`aws.amazon.com`. Supply a real executor or wrap your actual paid operation
+to integrate a provider. Do not execute the purchase again after settlement.
+See [the core API guide](docs/core.md) and [LangChain integration](docs/langchain.md).
+
+## Run the LangChain chatbot
+
+From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r sample_app\requirements-chatbot.txt
+# First-time configuration; preserve an existing .env:
+if (-not (Test-Path sample_app\.env)) { Copy-Item sample_app\.env.example sample_app\.env }
+```
+
+Edit the ignored `sample_app/.env` with `OPENAI_API_KEY` and `OPENAI_MODEL`,
+then start the chatbot:
+
+```powershell
+.\.venv\Scripts\python.exe sample_app\chatbot.py
+```
+
+Try `Buy 1 demo credit` or `Buy 3 demo credits`. The application generates a
+random UUID order ID for a new purchase; users do not need to invent one.
+The returned ID is reused for retries and retained through approval/resume.
+Omitting an ID again creates a new purchase.
+
+Each demo credit costs $10. The sample agent has a $100 daily budget, a $50
+transaction cap, and approval above $25. A fresh agent joins a default team
+with a $150 shared budget; later dashboard team edits survive restart.
+
+| Operator command | Action |
+| --- | --- |
+| `/status`, `/pending` | Inspect balances or pending requests |
+| `/approve ID`, `/reject ID` | Approve/execute or reject a request |
+| `/resume ID` | Execute a request approved through the dashboard |
+| `/kill`, `/unpause` | Stop or re-enable chatbot spending |
+| `/help`, `/exit` | Show help or exit |
+
+Command IDs are numeric **request IDs**, distinct from UUID order IDs.
+Conversation and approval input mappings are in memory; see
+[chatbot instructions](sample_app/CHATBOT.md) for restart recovery.
+
+## Open the dashboard
+
+Use a second terminal with the chatbot's database:
 
 ```powershell
 .\.venv\Scripts\python.exe -m spendguard.cli --db sample_app\chatbot.db dashboard --env-file sample_app\.env
 ```
 
-Email is sent only through the operator's **Send / retry queued email** action.
-For an isolated offline demonstration of all four tabs, run
-`python sample_app/dashboard_demo.py --reset`, then open the dashboard with
-`--db sample_app/dashboard_demo.db`. The demo labels its synthetic model usage
-and never sends email.
+Open [localhost:8501](http://localhost:8501). Review requests, approve or deny
+held purchases, inspect model usage and workflow events, edit team budgets,
+and manage queued email. After approving a wrapped chatbot purchase, use
+`/resume ID` in the chatbot to execute it; dashboard approval alone does not
+run the wrapped tool.
 
-### Current status
+Optional `OPENAI_INPUT_USD_PER_MILLION` and `OPENAI_OUTPUT_USD_PER_MILLION`
+settings supply trusted model rates. Missing rates or usage remain unknown.
+Known estimates reduce later available funds but are not provider invoices.
 
-- Implemented features: agent and shared team limits, atomic reservations, approvals/expiry, kill/resume, durable request feeds, optional LangChain tools/chatbot, model tokens and configured cost estimates, workflow tracing, email outbox/retry, CLI, and dashboard. Automated Streamlit tests cover new tabs and rejection controls.
-- Known limitations: default payments/demo purchases are simulated. Supported wrappers use synchronous StructuredTool tools with Pydantic schemas; `ainvoke` uses worker threads. Model usage is recorded after responses without a pre-call cost reservation; unknown costs and uninstrumented actions can overstate remaining funds. No invoice reconciliation or automatic crash recovery. SMTP acceptance does not prove inbox delivery. Ordinary custom-executor approvals still require the correct executor in the approving process; wrapped approvals defer execution to their wrapper. Local dashboard/database interfaces have no authentication.
-- Libraries and sources: listed in [core documentation](docs/core.md); no public dataset used.
+Configure `SPENDGUARD_SMTP_*` in the ignored `.env`, then use
+**Email notifications → Send / retry queued email**. Emails never send
+automatically. See [insights and email configuration](docs/insights.md).
 
-See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.
+## Offline examples
+
+These examples use local simulations and require no model-provider credentials:
+
+```powershell
+# Core allow/hold/deny example:
+.\.venv\Scripts\python.exe sample_app\main.py
+# Scripted LangChain agent:
+.\.venv\Scripts\python.exe sample_app\langchain_agent.py
+# Seed an isolated dashboard with explicitly synthetic model usage:
+.\.venv\Scripts\python.exe sample_app\dashboard_demo.py
+.\.venv\Scripts\python.exe -m spendguard.cli --db sample_app\dashboard_demo.db dashboard
+```
+
+Each example has its own database. Use `--reset` only on a dedicated demo
+database when you intend to clear its history. See
+[sample application usage](sample_app/README.md) and [dashboard instructions](docs/dashboard.md).
+
+## Tests and validation
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install -r sample_app\requirements-chatbot.txt
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+The last full-suite run passed **142 tests**. After automatic UUIDs were added,
+all **24 chatbot tests** passed; the full suite was not rerun for that change.
+Tests use scripted models, temporary databases, automated Streamlit checks,
+and mocked SMTP. Release archives passed strict Twine validation, and a fresh
+wheel installation passed core and CLI checks. Checks ran on Python 3.14;
+the declared Python 3.10+ range has not been tested across a version matrix.
+Live provider/email integration and a manual browser walkthrough remain unverified.
+
+## Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `spendguard/` | Policy, SQLite storage, integrations, CLI, and dashboard |
+| `sample_app/` | Consumer examples, chatbot, and offline dashboard demo |
+| `tests/` | Core, integration, chatbot, and dashboard checks |
+| `docs/` | API, integration, dashboard, insights, and publishing guides |
+| `package_release/` | Self-contained distributable source snapshot |
+
+Keep runtime files in `package_release/spendguard/` synchronized with
+`spendguard/` before building a release. See [package usage](package_release/README.md)
+and [PyPI publishing steps](docs/publishing.md).
+
+## Current limitations
+
+SpendGuard is a local prototype without an authentication boundary. Processes
+must share a local SQLite database to share state. Unwrapped operations are
+outside enforcement. LangChain support covers synchronous `StructuredTool`
+tools; native async-only tools and streaming output are not supported.
+
+Model estimates are recorded after responses, without pre-call reservation,
+cached-token pricing, or invoice reconciliation. Unknown or uninstrumented
+model costs can overstate available funds. Daily accounting follows UTC
+creation dates. Kill switches cannot undo an operation already executing;
+interrupted operations or email sends require manual reconciliation. SMTP
+acceptance does not confirm inbox delivery. Tool arguments/results are stored
+in SQLite; keep credentials out of them and protect the database.
+
+## Development record
+
+Built for the DevDay Exchange Community Hackathon in Kochi, 10–11 October 2026.
+Event information remains in [RULES.md](RULES.md). See [CHANGELOG.md](CHANGELOG.md)
+for changes and validation results, [AI_USAGE.md](AI_USAGE.md) for Codex's
+contributions, and [SUBMISSION.md](SUBMISSION.md) for submission details.
