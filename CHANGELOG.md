@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T06:58:45+05:30 — Review all project READMEs
+
+- Changed: Reviewed root, sample, and standalone package READMEs. Added missing UUID purchase instructions and distribution/import distinction to the sample README; clarified its optional dependencies and verified wheel/test status. Updated root validation wording to distinguish the prior full-suite run from the latest 24 chatbot tests and avoid assuming the user's upload status. Package README remains accurate and unchanged.
+- Why: Keep all project entry points consistent with the renamed distribution, automatic order IDs, and actual checks.
+- Validation: Checked all three project READMEs and their local links, reviewed current code/validation records, and checked diff whitespace. Documentation-only change; no tests, builds, external calls, or publishing performed.
+- Limitations: PyPI publication and live provider/manual dashboard walkthrough remain unverified. Human review pending.
+
 ## 2026-10-11T06:54:50+05:30 — Generate chatbot order UUIDs automatically
 
 - Changed: Made the model-facing purchase tool's order ID optional and generate a UUID in application code before submitting a new purchase. Included the ID in all purchase results and preserved it through operator approval/resume and explicit retries. Updated system/tool instructions, prompt examples, root README, and chatbot guide; existing explicit IDs still work.

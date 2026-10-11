@@ -4,13 +4,18 @@ For an interactive LangChain chatbot with guarded demo purchases, see
 [chatbot setup and usage](CHATBOT.md). Run `chatbot.py` with your OpenAI API
 configuration in the ignored `.env` beside it; `langchain_agent.py` remains the
 offline scripted example. Copy `.env.example` only when creating a new `.env`.
+For a new purchase, say "Buy 3 demo credits." The application generates a UUID
+order ID automatically and returns it with the result; users do not need to
+invent an ID. The chatbot reuses the returned ID for retries, and operator
+approval/resume keeps it unchanged. Omitting an ID again creates a new purchase.
 The chatbot now records model usage and workflow events, joins a default shared
 team on first startup, and queues email alerts. See [insights configuration](../docs/insights.md).
 `dashboard_demo.py --reset` creates a separate offline demonstration database
 with two agents, a shared limit, synthetic model usage, approval/denial, and
 queued notifications; no model provider or email server is contacted.
 
-This directory demonstrates using the installed `spendguard` package from a
+This directory demonstrates using the installed `spnd-guard` distribution
+(imported as `spendguard`) from a
 small Python application owned by a package user. This directory can be copied
 outside the SpendGuard repository. It imports the public API directly, without
 changing Python's import path or copying package code. Python 3.10+ is required.
@@ -130,10 +135,12 @@ the built-in adapters only simulate it. Do not run the same purchase again after
 available; see below. An executor registered only in one process is not shared
 with a separate dashboard process; the sample deliberately uses default mocks.
 
-This sample uses only the package and Python standard library. Dashboard use
-requires the package's optional Streamlit extra. Standalone installation, sample
-execution, and interactive approval have not yet been verified; see the repository
-validation log.
+`main.py` uses only the package and Python standard library. The chatbot and
+LangChain example have separate optional dependencies. Dashboard use requires
+the package's dashboard extra. A standalone wheel installation and core smoke
+checks passed in a fresh environment; chatbot behavior is covered by 24 scripted
+tests, including automatic UUIDs. Live provider calls and a manual interactive
+dashboard walkthrough remain unverified; see the repository validation log.
 
 ## LangChain consumer example
 

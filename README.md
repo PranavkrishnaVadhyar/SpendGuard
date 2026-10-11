@@ -44,7 +44,10 @@ Local setup is installed in `.venv` using Python 3.14.3 and
 editable SpendGuard. LangChain 1.4.4 is installed for the optional integration.
 The test suite covers the core, LangChain agent, and dashboard with scripted
 models, temporary SQLite files, and mocked SMTP. See the changelog for exact
-counts and validation details (142 tests passed in 22.67 seconds). No live model calls, emails, or real payments
+counts and validation details (last full-suite run: 142 tests passed in 22.67
+seconds; after the UUID change: all 24 chatbot tests passed in 5.55 seconds).
+The release wheel also passed fresh-environment installation and core smoke
+checks. No live model calls, emails, or real payments
 were used. A live browser walkthrough has not been verified. Refreshing the editable installation currently encounters a
 Windows lock on `.venv/Scripts/spendguard.exe`; close processes using that
 executable before reinstalling. Module commands remain available through
@@ -76,7 +79,7 @@ Copy that directory to build or install independently. Future source changes in
 `spendguard/` must be copied into that snapshot before a new release is built.
 See the [PyPI publishing guide](docs/publishing.md) for build, validation, secure
 upload, and consumer installation steps. Version 0.1.0 is prepared locally;
-publication is pending authentication. Once published, consumers can install
+publication has not been verified. Once published, consumers can install
 `python -m pip install "spnd-guard[langchain,dashboard]"`.
 
 LangChain agents can use [guarded tools](docs/langchain.md). Install
