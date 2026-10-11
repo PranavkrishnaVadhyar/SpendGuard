@@ -32,6 +32,7 @@ SpendGuard's Python library core has been migrated from the earlier backend and 
 ## Project overview — complete during the event
 
 - **Project name:** SpendGuard
+- **PyPI distribution:** `spnd-guard`; Python import and CLI: `spendguard`.
 - **Short description:** A Python library for agent spend controls with deterministic budgets, human approvals, and kill switches. Payments are mocked by default.
 - **Team:** TODO — participant names and GitHub handles; maximum 4 members.
 - **Working demo:** [Offline dashboard demo](docs/dashboard.md), validated in tests; live provider/email/browser walkthrough remains unverified.
@@ -73,6 +74,10 @@ a dependency from the parent checkout or a separately supplied source path.
 containing only the distributable library, package metadata, and package README.
 Copy that directory to build or install independently. Future source changes in
 `spendguard/` must be copied into that snapshot before a new release is built.
+See the [PyPI publishing guide](docs/publishing.md) for build, validation, secure
+upload, and consumer installation steps. Version 0.1.0 is prepared locally;
+publication is pending authentication. Once published, consumers can install
+`python -m pip install "spnd-guard[langchain,dashboard]"`.
 
 LangChain agents can use [guarded tools](docs/langchain.md). Install
 `python -m pip install -e ".[langchain]"`, import

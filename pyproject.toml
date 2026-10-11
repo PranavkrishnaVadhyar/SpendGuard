@@ -3,11 +3,18 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "spendguard"
+name = "spnd-guard"
 version = "0.1.0"
 description = "Deterministic spend controls and approvals for AI agents"
+readme = "package_release/README.md"
 requires-python = ">=3.10"
 dependencies = []
+keywords = ["agents", "budgets", "approvals", "langchain"]
+classifiers = ["Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.urls]
+Repository = "https://github.com/PranavkrishnaVadhyar/SpendGuard"
+Issues = "https://github.com/PranavkrishnaVadhyar/SpendGuard/issues"
 
 [project.optional-dependencies]
 dashboard = ["streamlit>=1.37", "python-dotenv>=1,<2"]

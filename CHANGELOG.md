@@ -4,6 +4,13 @@ Record each meaningful project change during the event, newest first. Update thi
 
 ## Event build log
 
+## 2026-10-11T06:32:00+05:30 — Prepare spnd-guard for PyPI
+
+- Changed: Renamed the distribution in root and standalone metadata to `spnd-guard` version 0.1.0, preserving Python imports, CLI, configuration, and database compatibility. Added README metadata at the root, alpha/OS/Python classifiers, keywords, verified repository URLs, consumer install examples, and `docs/publishing.md` with secure PyPI/TestPyPI upload and verification steps.
+- Why: Publish under the user's requested install name while preserving existing integrations.
+- Validation: Installed build 1.6.1 and Twine 7.0.0. Isolated build produced `package_release/dist/spnd_guard-0.1.0-py3-none-any.whl` and `spnd_guard-0.1.0.tar.gz`; both passed `twine check --strict`. Verified distribution metadata, optional-only dependencies, CLI entry point, archive exclusions, and all 22 runtime files against source/snapshot/wheel/sdist. Installed the wheel with no dependencies in a fresh virtual environment, then verified version, imports, local mock settlement/denial, and CLI help with isolated Python outside the source import path. PyPI JSON lookup returned HTTP 404 for the requested name; this does not guarantee name availability. Diff whitespace checked. Runtime code unchanged; full 142-test suite from the prior milestone not repeated.
+- Limitations: No upload or index installation performed; authentication is not configured in the usual local environment/config file. No license/author identity invented. Declared Python 3.10+ support was only exercised on local Python 3.14. Existing development environment retains its previous distribution to avoid CLI file-lock/shared-import conflicts; wheel was checked in a fresh environment. Credentials, release artifacts, temporary validation environment, and user `test.py` are excluded from the commit. Human review pending; no push.
+
 ## 2026-10-11T04:59:36+05:30 — Expand dashboard with usage, workflows, teams, and email
 
 - Changed: Added durable model-usage estimates, workflow/session/tool events and request transitions, atomic shared team budgets with membership snapshots, and an SMTP notification outbox with explicit send/retry and sanitized failures. Expanded Streamlit tabs/forms and CLI insights/env-file support; integrated tracking into the chatbot and preserved dashboard team edits across restarts. Added a separate offline dashboard demo, blank pricing/SMTP settings, 25 new tests, and updated root/core/dashboard/LangChain/sample/release/submission documentation. Synchronized 22 runtime files into `package_release/` while keeping the core standard-library-only.

@@ -45,7 +45,7 @@ location of a SpendGuard source checkout containing `pyproject.toml`:
 ```
 
 Once a release of **this project** is published to the intended package index,
-users can instead install `spendguard` (core only) or `spendguard[dashboard]` by
+users can instead install `spnd-guard` (core only) or `spnd-guard[dashboard]` by
 name. Publication has not been performed or verified in this session; the local
 checkout installation above is the currently documented source for this project.
 The package's source folder does not need to live alongside the user's app.

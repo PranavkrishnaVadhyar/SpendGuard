@@ -1,4 +1,4 @@
-# SpendGuard
+# spnd-guard (SpendGuard)
 
 A Python library for applying deterministic spend limits, merchant allowlists,
 human approvals, and kill switches to AI agent requests. State is stored in
@@ -6,7 +6,16 @@ local SQLite. Python 3.10+ is required; the core has no third-party dependencies
 
 ## Install
 
-From this directory:
+The PyPI distribution name is `spnd-guard`; Python imports and the CLI remain
+`spendguard`. Version 0.1.0 is prepared for publication; availability on PyPI
+has not yet been verified. After publication, install with:
+
+```powershell
+python -m pip install spnd-guard
+python -m pip install "spnd-guard[langchain,dashboard]"
+```
+
+For a local source installation from this directory:
 
 ```powershell
 python -m pip install .
@@ -216,10 +225,14 @@ and mocked SMTP; no live payment/email integration is claimed.
 This directory is self-contained. To create wheel and source archives:
 
 ```powershell
-python -m pip install build
+python -m pip install build twine
 python -m build
+python -m twine check --strict dist/*
 ```
 
 Artifacts appear in `dist/`. The installation name is `[project].name` in
 `pyproject.toml`; the Python import remains `spendguard` unless its source and
-imports are renamed. Publishing to a package index is a separate step.
+imports are renamed. Publishing to a package index is a separate step using
+`python -m twine upload dist/*` and your own PyPI credentials. Upload only the
+wheel and source archive for the intended version. See the repository's
+[publishing guide](https://github.com/PranavkrishnaVadhyar/SpendGuard/blob/main/docs/publishing.md).

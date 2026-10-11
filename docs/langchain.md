@@ -8,6 +8,9 @@ python -m pip install -e ".[langchain]"
 
 For the standalone `package_release` directory, install `".[langchain]"` from
 that directory. SpendGuard has not been published to a package index.
+The prepared distribution is named `spnd-guard`; after publication use
+`python -m pip install "spnd-guard[langchain]"`. Imports remain `spendguard`.
+See [publishing status and instructions](publishing.md).
 
 Wrap each paid tool, then pass the returned tool to LangChain's `create_agent`:
 
