@@ -61,10 +61,10 @@ def _load_data(st, sg) -> tuple[dict, list[dict], bool]:
         status = sg.status()
         requests = [record.to_dict() for record in sg.feed(50)]
         pending = [record.to_dict() for record in sg.pending()]
-        return {**status, "requests": requests}, pending, False
+        return {**status, "requests": requests, "insights": sg.insights.snapshot()}, pending, False
     except Exception as exc:
-        st.error(f"Could not read SpendGuard state: {exc}")
-        return {"kill_global": False, "agents": [], "requests": []}, [], False
+        st.error(f"Could not read SpendGuard state ({type(exc).__name__}). Check database access; controls are unavailable.")
+        return None, [], False
 
 
 def _action(st, fn) -> bool:
@@ -96,6 +96,8 @@ def render_dashboard(st, sg) -> None:
       div[data-testid="stMetricValue"] {font-size:2rem}
     </style>""", unsafe_allow_html=True)
     feed, pending, fixture_mode = _load_data(st, sg)
+    if feed is None:
+        return
     agents = feed.get("agents", [])
     requests = feed.get("requests", [])
 
@@ -116,11 +118,16 @@ def render_dashboard(st, sg) -> None:
         daily = max(0.0, float(agent.get("daily_budget", 0) or 0))
         spent = max(0.0, float(agent.get("spent", 0) or 0))
         reserved = max(0.0, float(agent.get("reserved", 0) or 0))
-        left = max(0.0, daily - spent - reserved)
+        model_cost = float(agent.get("model_estimated_cost", 0) or 0)
+        left = float(agent.get("available", daily - spent - reserved - model_cost))
         with st.container(border=True):
             st.markdown(f"**{agent.get('name', agent.get('id', 'Agent'))}** · {agent.get('status', 'unknown')}")
-            st.progress(min(1.0, (spent + reserved) / daily) if daily else 0.0)
-            st.caption(f"Spent ${spent:.2f} · Reserved ${reserved:.2f} · Remaining ${left:.2f} of ${daily:.2f}")
+            st.progress(min(1.0, (spent + reserved + model_cost) / daily) if daily else 0.0)
+            st.caption(f"Tool spending ${spent:.2f} · Reserved ${reserved:.2f} · Model estimate ${model_cost:.6f} · Available ${left:.2f} of ${daily:.2f}")
+            if agent.get("unpriced_calls", 0):
+                st.warning(f"{agent['unpriced_calls']} model calls have unknown cost; available funds may be overstated.")
+
+    _render_insights(st, sg, feed.get("insights", {}), fixture_mode)
 
     st.subheader("Live feed")
     if requests:
@@ -184,6 +191,77 @@ def render_dashboard(st, sg) -> None:
         if st.button("Kill selected agent", disabled=fixture_mode, key="kill-agent"):
             if _action(st, lambda: sg.kill(selected.get("id"))):
                 st.rerun()
+        if st.button("Resume selected agent", disabled=fixture_mode, key="resume-agent"):
+            if _action(st, lambda: sg.resume(selected.get("id"))):
+                st.rerun()
+
+
+def _render_insights(st, sg, data, fixture_mode):
+    usage_tab, trace_tab, team_tab, email_tab = st.tabs(
+        ["Model usage", "Workflows", "Team budgets", "Email notifications"])
+    with usage_tab:
+        totals = data.get("usage_totals", {})
+        calls, tokens, cost = st.columns(3)
+        calls.metric("Model calls today (UTC)", totals.get("calls", 0))
+        tokens.metric("Reported tokens today", totals.get("input_tokens", 0) + totals.get("output_tokens", 0))
+        cost.metric("Known cost estimate today", f"${totals.get('estimated_cost', 0):.6f}")
+        st.caption("Estimates use application-configured USD rates. Unknown costs are excluded, not assumed free. Recorded after responses; no in-flight model budget guarantee.")
+        if totals.get("unpriced_calls", 0):
+            st.warning(f"{totals['unpriced_calls']} calls today lack usage data or pricing.")
+        st.dataframe(data.get("by_model", []), use_container_width=True)
+        with st.expander("Recent model calls (up to 200)"):
+            st.dataframe(data.get("usage", []), use_container_width=True)
+    with trace_tab:
+        traces = data.get("traces", [])
+        st.caption("Workflow metadata only; prompts and responses are not recorded here. A completed turn can still have a pending purchase.")
+        if traces:
+            st.dataframe(traces, use_container_width=True)
+            selected_trace = st.selectbox("Workflow", options=[row['id'] for row in traces], key="selected-trace")
+            events = [event for event in data.get("events", []) if event['trace_id'] == selected_trace]
+            st.dataframe(list(reversed(events)), use_container_width=True)
+            st.caption("Shows events from the latest 500 records; request IDs link approvals and execution to their originating workflow.")
+        else:
+            st.info("No workflow runs recorded yet. Start the updated chatbot and send a message.")
+        st.dataframe(data.get("request_context", []), use_container_width=True)
+    with team_tab:
+        st.caption("Team limits apply atomically across member tool requests. Known model estimates reduce subsequent available funds. Membership is snapshotted per action.")
+        st.dataframe(data.get("teams", []), use_container_width=True)
+        st.dataframe(data.get("members", []), use_container_width=True)
+        if not fixture_mode:
+            with st.form("team-settings"):
+                team_id = st.text_input("Team ID")
+                team_name = st.text_input("Team name (optional)")
+                limit = st.number_input("Team daily budget (USD)", min_value=0.0, value=150.0)
+                if st.form_submit_button("Save team budget"):
+                    if _action(st, lambda: sg.insights.create_team(team_id, limit, team_name or None)):
+                        st.rerun()
+            agents = sg.status().get("agents", [])
+            team_ids = [row['id'] for row in data.get("teams", [])]
+            if agents and team_ids:
+                with st.form("team-membership"):
+                    agent_id = st.selectbox("Assign agent", options=[row['id'] for row in agents])
+                    target_team = st.selectbox("To team", options=team_ids)
+                    if st.form_submit_button("Assign to team"):
+                        if _action(st, lambda: sg.insights.assign_agent(agent_id, target_team)):
+                            st.rerun()
+    with email_tab:
+        st.caption("Request changes and 80% budget warnings enter a durable outbox. Email is sent only when an operator clicks Send / retry. 'sent' means accepted by SMTP, not confirmed inbox delivery.")
+        notifications = data.get("notifications", [])
+        st.dataframe(notifications, use_container_width=True)
+        from spendguard.notifications import EmailSettings, send_pending
+        try:
+            settings = EmailSettings.from_env()
+        except (ValueError, TypeError):
+            settings = None
+            st.info("Email is not configured. Set SPENDGUARD_SMTP_* values and launch the dashboard with --env-file. Credentials are never shown here.")
+        if st.button("Send / retry queued email", disabled=fixture_mode or settings is None):
+            try:
+                result = send_pending(sg.db_path, settings)
+                st.success(f"SMTP accepted {result['sent']} email(s); failed {result['failed']}.")
+            except Exception as exc:
+                st.error(f"Email batch failed ({type(exc).__name__}).")
+        if any(row['status'] == 'sending' for row in notifications):
+            st.warning("An interrupted send may have an unknown outcome. Sending rows are not retried automatically; reconcile before resending.")
 
 
 def main() -> None:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -16,6 +17,7 @@ def _parser() -> argparse.ArgumentParser:
     feed = commands.add_parser("feed", help="Show recent requests")
     feed.add_argument("--limit", type=int, default=50)
     commands.add_parser("pending", help="Show pending approvals")
+    commands.add_parser("insights", help="Show team budgets, model usage, workflows, and email outbox")
     for name in ("approve", "reject"):
         command = commands.add_parser(name)
         command.add_argument("id")
@@ -27,6 +29,7 @@ def _parser() -> argparse.ArgumentParser:
     dashboard = commands.add_parser("dashboard", help="Start the Streamlit dashboard")
     dashboard.add_argument("--db", dest="dashboard_db")
     dashboard.add_argument("--port", type=int, default=8501)
+    dashboard.add_argument("--env-file", help="Load dashboard/email settings from an ignored environment file")
     return parser
 
 
@@ -69,9 +72,18 @@ def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     db_path = getattr(args, "dashboard_db", None) or args.db
     if args.command == "dashboard":
+        if args.env_file:
+            try:
+                from dotenv import load_dotenv
+                if not Path(args.env_file).is_file():
+                    raise ValueError("environment file does not exist")
+                load_dotenv(args.env_file, override=False, interpolate=False, encoding="utf-8-sig")
+            except (ImportError, OSError, UnicodeError, ValueError):
+                print("Could not load dashboard environment file; install python-dotenv and check the path/encoding.", file=sys.stderr)
+                return 1
         return _run_dashboard(db_path, args.port)
     try:
-        from spendguard import InvalidState, NotFound, SpendGuard
+        from spendguard import SpendGuard, SpendGuardError
         guard = SpendGuard(db_path)
         if args.command == "status":
             status = guard.status()
@@ -81,11 +93,13 @@ def main(argv=None) -> int:
                 reserved = float(agent.get("reserved", 0) or 0)
                 budget = float(agent.get("daily_budget", 0) or 0)
                 print(f"{agent.get('id')}  {agent.get('name', '')}  {agent.get('status', '')}  "
-                      f"spent ${spent:.2f}  reserved ${reserved:.2f}  remaining ${max(0, budget-spent-reserved):.2f}")
+                      f"spent ${spent:.2f}  reserved ${reserved:.2f}  model estimate ${agent.get('model_estimated_cost', 0):.6f}  remaining ${agent.get('available', budget-spent-reserved):.2f}")
         elif args.command == "feed":
             _print_requests(guard.feed(args.limit))
         elif args.command == "pending":
             _print_requests(guard.pending(), include_explanation=True)
+        elif args.command == "insights":
+            print(json.dumps(guard.insights.snapshot(), indent=2))
         elif args.command in {"approve", "reject"}:
             method = guard.approve if args.command == "approve" else guard.reject
             result = method(args.id, approver=args.approver)
@@ -101,7 +115,7 @@ def main(argv=None) -> int:
     except ImportError as exc:
         print(f"SpendGuard core is unavailable: {exc}", file=sys.stderr)
         return 1
-    except (NotFound, InvalidState) as exc:
+    except (SpendGuardError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
 

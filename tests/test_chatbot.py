@@ -35,6 +35,18 @@ def test_multi_turn_chat_keeps_context(bot):
     assert bot.chat("My name is Alex")[-1].content == "Hello"
     bot.chat("What is my name?")
     assert [m.content for m in bot.messages] == ["My name is Alex", "Hello", "What is my name?", "Hello again"]
+    snapshot = bot.guard.insights.snapshot()
+    assert len(snapshot['traces']) == 2 and snapshot['usage_totals']['calls'] == 2
+    assert snapshot['usage_totals']['unpriced_calls'] == 2
+
+
+def test_restart_keeps_dashboard_team_edits(bot):
+    bot.guard.insights.create_team('other-team', 35)
+    bot.guard.insights.assign_agent('chatbot', 'other-team')
+    restarted = make_guard(bot.guard.db_path)
+    snapshot = restarted.insights.snapshot()
+    assert snapshot['members'][0]['team_id'] == 'other-team'
+    assert next(team for team in snapshot['teams'] if team['id'] == 'other-team')['daily_budget'] == 35
 
 
 @pytest.mark.parametrize("quantity,status", [(1, "settled"), (3, "pending_approval"), (8, "denied")])

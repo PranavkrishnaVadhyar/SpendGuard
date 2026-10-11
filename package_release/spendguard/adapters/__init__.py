@@ -27,7 +27,7 @@ def execute(request: dict) -> dict:
             return {"ok": False, "receipt_id": None, "detail": "no adapter registered"}
         result = adapter.execute(request)
         return {
-            "ok": bool(result.get("ok", False)),
+            "ok": result.get("ok") is True,
             "receipt_id": result.get("receipt_id"),
             "detail": str(result.get("detail", "")),
         }

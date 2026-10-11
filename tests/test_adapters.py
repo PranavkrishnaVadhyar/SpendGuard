@@ -1,4 +1,13 @@
 from spendguard.adapters import Adapter, execute, register
+
+
+def test_truthy_non_boolean_success_fails_closed():
+    class MalformedAdapter(Adapter):
+        def execute(self, request):
+            return {'ok': 'false'}
+
+    register('malformed.example', MalformedAdapter())
+    assert execute({'merchant': 'malformed.example'})['ok'] is False
 from spendguard.adapters import mock
 
 

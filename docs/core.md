@@ -2,9 +2,10 @@
 
 The library and development extras were installed in the local `.venv` with
 Python 3.14.3 on 11 October 2026. Editable package build succeeded and `pip check`
-reported no broken requirements. On 11 October 2026, the full pytest suite passed:
-79 tests in 10.14 seconds, including thread/process budget, lifecycle, adapter,
-explainer, and CLI checks. An interactive dashboard demo remains unverified.
+reported no broken requirements (an earlier interrupted reinstall leaves an
+invalid-distribution warning). The current full suite passed: 142 tests in
+22.67 seconds, including shared budgets, LangChain usage/traces, mocked SMTP,
+and automated Streamlit checks. Live model, email, and browser demos remain unverified.
 
 ## Installation and first request
 
@@ -63,12 +64,12 @@ Timestamps use UTC `YYYY-MM-DDTHH:MM:SSZ`; fractional TTLs have second precision
 | `get(request_id)` | `RequestRecord`; `NotFound` if absent |
 | `pending()` | List of pending `RequestRecord`s, oldest first |
 | `feed(limit=50)` | List of `RequestRecord`s, newest first; non-negative integer limit |
-| `approve(request_id, approver="admin")` | `RequestRecord` after execution; `NotFound` / `InvalidState` on invalid transition |
+| `approve(request_id, approver="admin")` | `RequestRecord` after authorization/execution; wrapped tools defer execution to their wrapper; `NotFound` / `InvalidState` on invalid transition |
 | `reject(request_id, approver="admin")` | Rejected `RequestRecord`; same errors as approve |
 | `kill(agent_id=None)` | `None`; globally or individually disables spending and cancels matching pending/approved records |
 | `resume(agent_id=None)` | `None`; clears the selected kill state; never revives cancellations |
-| `status()` | `{kill_global: bool, agents: [{id,name,status,daily_budget,spent,reserved,available}]}` |
-| `reset()` | `None`; clears requests and kill state, keeps agents, names, and policies; `InvalidState` during execution |
+| `status()` | `{kill_global: bool, agents: [{id,name,status,daily_budget,spent,reserved,model_estimated_cost,unpriced_calls,available}]}` |
+| `reset()` | `None`; clears requests, usage, traces, notifications and kill state; keeps agents/policies/teams/membership; refuses executing requests, running traces, or sending emails |
 
 Agent-specific kill/resume raise `UnknownAgent` for a missing agent. Configuration
 and policy validation errors use `ValueError`; storage errors outside `request`
@@ -78,7 +79,7 @@ demo reset, not a daily accounting operation.
 
 Exports: `SpendGuard`, `Policy`, `RequestRecord`, `Outcome`, `SpendGuardError`,
 `UnknownAgent`, `NotFound`, `InvalidState`, `RequestDenied`, `__version__` (0.1.0).
-`governed` is exported only if Person C's `spendguard.tools` can be imported.
+Framework tools are imported explicitly from `spendguard.integrations.langchain`.
 `RequestDenied(outcome)` exposes `.outcome`; the core does not raise it.
 
 `Policy` is a dataclass with `daily_budget`, `per_txn_cap`, `approval_threshold`,
@@ -167,9 +168,22 @@ Tests use [pytest](https://docs.pytest.org/). Optional extras use
 [OpenAI Python SDK](https://github.com/openai/openai-python), plus optional
 [LangChain](https://docs.langchain.com/oss/python/langchain/tools) for guarded tools.
 No public datasets or external project implementations were imported.
-The original 79 tests and additional LangChain integration tests pass; exact
-results are in the changelog. Source-review findings about ordinary custom
-executor configuration, adapter result validation, dashboard read errors, and
-CLI error handling remain unresolved. Wrapped tool approvals are now deferred
-to their wrapper. A standalone release wheel has been built and inspected;
-interactive dashboard and real paid-service integration remain unverified.
+See the changelog for current full-suite validation. Wrapped tool approvals are
+deferred to their wrapper. Adapter success now requires a literal boolean True,
+dashboard read failures stop healthy-state rendering, and expected CLI errors
+produce useful messages. Ordinary custom-executor approvals still require the
+correct configuration in the approving process. A standalone release wheel has
+been built/inspected; real paid services and live email remain unverified.
+
+## Insights and shared budgets
+
+`guard.insights` provides team creation/assignment, model usage, workflow traces,
+and dashboard snapshots. See [insights documentation](insights.md). Known model
+estimates reduce later available funds; `spent` stays settled tool spending.
+Unknown costs are shown separately. Team budgets admit/reserve requests under
+the same transaction as individual limits. New SQLite tables and triggers retain
+outbox alerts and request transitions. Existing data is preserved; team membership
+is snapshotted only for new requests/usage. Reset clears these runtime records
+while preserving team membership/configuration and refuses active workflows or
+in-flight email delivery as well as executing requests. SMTP uses standard-library
+modules; environment-file loading is optional through the dashboard extra.

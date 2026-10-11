@@ -34,16 +34,17 @@ SpendGuard's Python library core has been migrated from the earlier backend and 
 - **Project name:** SpendGuard
 - **Short description:** A Python library for agent spend controls with deterministic budgets, human approvals, and kill switches. Payments are mocked by default.
 - **Team:** TODO — participant names and GitHub handles; maximum 4 members.
-- **Working demo:** Not yet verified; see [library setup](docs/core.md).
-- **Technology stack:** Python 3.10+ standard library and SQLite; setuptools packaging.
+- **Working demo:** [Offline dashboard demo](docs/dashboard.md), validated in tests; live provider/email/browser walkthrough remains unverified.
+- **Technology stack:** Python 3.10+ standard library and SQLite; optional LangChain, OpenAI provider, Streamlit, and python-dotenv; setuptools packaging.
 
 ### Run the project
 
 Local setup is installed in `.venv` using Python 3.14.3 and
 editable SpendGuard. LangChain 1.4.4 is installed for the optional integration.
-All 117 tests passed in 13.16 seconds, and the offline LangChain example ran
-successfully. See the changelog for validation details. An interactive dashboard demo has not
-been verified. Refreshing the editable installation currently encounters a
+The test suite covers the core, LangChain agent, and dashboard with scripted
+models, temporary SQLite files, and mocked SMTP. See the changelog for exact
+counts and validation details (142 tests passed in 22.67 seconds). No live model calls, emails, or real payments
+were used. A live browser walkthrough has not been verified. Refreshing the editable installation currently encounters a
 Windows lock on `.venv/Scripts/spendguard.exe`; close processes using that
 executable before reinstalling. Module commands remain available through
 `python -m spendguard.cli`.
@@ -87,13 +88,28 @@ credit purchases with SpendGuard. Operator commands approve/reject, inspect
 balances, and stop spending. Install its separate `requirements-chatbot.txt`
 and set `OPENAI_API_KEY`/`OPENAI_MODEL` in the ignored `sample_app/.env` file;
 existing terminal variables and the `--model` option can override it.
-Purchases are simulated and model API
-costs are outside SpendGuard's budget. Live model calls have not been verified.
+Purchases are simulated. Model tokens are tracked after responses; optional
+configured USD rates produce cost estimates that reduce later available funds.
+Unknown costs are shown explicitly. Live model calls have not been verified.
+
+The [expanded dashboard](docs/dashboard.md) adds model usage, workflow events,
+shared team budgets, and an email outbox. Configure optional pricing and SMTP
+settings in the ignored sample `.env` using [insights setup](docs/insights.md):
+
+```powershell
+.\.venv\Scripts\python.exe -m spendguard.cli --db sample_app\chatbot.db dashboard --env-file sample_app\.env
+```
+
+Email is sent only through the operator's **Send / retry queued email** action.
+For an isolated offline demonstration of all four tabs, run
+`python sample_app/dashboard_demo.py --reset`, then open the dashboard with
+`--db sample_app/dashboard_demo.db`. The demo labels its synthetic model usage
+and never sends email.
 
 ### Current status
 
-- Implemented features: dataclass models, policy evaluation, atomic reservations, agent/policy management, request feed, approvals, expiry, polling, kill/resume, reset, background hooks, adapters, CLI, dashboard, and optional LangChain tool wrapping. Tests include thread/process budget checks and LangChain agent execution; interactive dashboard behavior remains unverified.
-- Known limitations: default payment adapters are mocks; LangChain wrappers execute the supplied tool implementation. Only synchronous StructuredTool tools with Pydantic schemas are supported, with `ainvoke` through worker threads. Model inference costs and unwrapped actions are not tracked. Interrupted execution recovery is not implemented. Source-review findings about ordinary custom-executor configuration, adapter success validation, dashboard read-error display, and CLI error handling remain unresolved; wrapped tool approvals are deferred safely to their wrapper.
+- Implemented features: agent and shared team limits, atomic reservations, approvals/expiry, kill/resume, durable request feeds, optional LangChain tools/chatbot, model tokens and configured cost estimates, workflow tracing, email outbox/retry, CLI, and dashboard. Automated Streamlit tests cover new tabs and rejection controls.
+- Known limitations: default payments/demo purchases are simulated. Supported wrappers use synchronous StructuredTool tools with Pydantic schemas; `ainvoke` uses worker threads. Model usage is recorded after responses without a pre-call cost reservation; unknown costs and uninstrumented actions can overstate remaining funds. No invoice reconciliation or automatic crash recovery. SMTP acceptance does not prove inbox delivery. Ordinary custom-executor approvals still require the correct executor in the approving process; wrapped approvals defer execution to their wrapper. Local dashboard/database interfaces have no authentication.
 - Libraries and sources: listed in [core documentation](docs/core.md); no public dataset used.
 
 See [AI_USAGE.md](AI_USAGE.md) for AI assistance and [CHANGELOG.md](CHANGELOG.md) for the development record.

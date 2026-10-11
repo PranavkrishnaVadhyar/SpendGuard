@@ -102,8 +102,10 @@ ordinary functions decorated with `@tool`, with Pydantic input schemas.
 `ainvoke` runs the synchronous wrapper in LangChain's worker thread. Native
 async-only tools, injected tool runtime/state arguments, streaming tool output,
 and custom `BaseTool` subclasses are outside this version's supported scope.
-Only wrapped tool operations are accounted for; LLM inference costs and direct
-provider calls outside the wrapper are not intercepted. Costs are declared
+Wrapped tools account for their declared operation costs. Optional model-usage
+callbacks now record reported tokens and configured cost estimates; the updated
+chatbot installs these automatically. See [insights](insights.md). Direct
+provider calls without instrumentation are not intercepted. Tool costs are declared
 before execution, without actual-usage reconciliation or currency conversion.
 
 The local claim prevents concurrent retries from executing the same stored

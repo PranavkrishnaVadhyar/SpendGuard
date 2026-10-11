@@ -4,7 +4,8 @@
 OpenAI chat model. It retains the conversation during the current process.
 Its purchase tool is wrapped by SpendGuard. Purchases simulate buying credits
 locally; model API calls use your OpenAI account and may incur charges.
-SpendGuard does not track those model costs.
+SpendGuard records reported model tokens and, when trusted rates are supplied,
+cost estimates. Unknown costs stay explicitly unpriced.
 
 ## Setup and launch
 
@@ -54,6 +55,9 @@ other examples. `--db PATH` selects another database. `--reset` explicitly
 clears requests and kill state for **all agents in the selected database**;
 use only a dedicated sample database. Startup registers the chatbot with the
 fixed demonstration policy below while preserving its existing kill state.
+A fresh chatbot joins `sample-team` with a $150 shared daily budget. Later team
+budget/membership edits in the dashboard survive chatbot restarts. Individual
+demo policy values remain fixed by this sample's startup code.
 
 ## Try the conversation
 
@@ -83,6 +87,8 @@ budget, a $50 per-request cap, and approval above $25. Its merchant allowlist
 contains `credits.example`. With a fresh database, one credit settles, three
 credits wait for approval, and eight credits are denied by the per-request cap.
 These are illustrative amounts, not actual debits or a payment-provider connection.
+Known model cost estimates also reduce later available funds, so pricing/model
+activity may affect the remaining budget between purchases.
 
 ## Commands and approval
 
@@ -102,7 +108,7 @@ For dashboard approval, install the dashboard extra and start it with this
 same absolute database path. From the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m spendguard.cli --db sample_app\chatbot.db dashboard
+.\.venv\Scripts\python.exe -m spendguard.cli --db sample_app\chatbot.db dashboard --env-file sample_app\.env
 ```
 
 After dashboard approval, type `/resume ID` in the chatbot. The sample uses
@@ -133,14 +139,31 @@ With pytest and the chatbot requirements installed, run from the repository root
 
 Tests include .env loading, custom paths, configuration precedence, and ensuring
 fake keys are not printed. Live credentials are never loaded by these tests.
-All 117 repository tests passed in 13.16 seconds.
+See the repository changelog for the current full-suite result.
 
 Tools use the existing synchronous StructuredTool integration. Unwrapped
-operations and model usage are outside its budget. The local operator/SQLite
+operations are outside its budget. Model usage is recorded after completion;
+it is not reserved before an API call. The local operator/SQLite
 interfaces have no authentication. Kill cannot undo an executing operation;
 crashes or provider side effects require manual reconciliation. Model failures
 show an error rather than invented responses; inspect `/pending` and `/status`
 before retrying a purchase with its original order ID. A graph limit bounds
-agent tool loops but does not create a model-spending budget. For a production
+agent tool loops but cannot guarantee a cap on in-flight model spending. For a production
 payment tool, replace the simulated executor with your provider operation and
 use provider-side idempotency too.
+
+## Model pricing, workflows, and email
+
+The chatbot creates a trace per turn, records model/tool events, and links paid
+requests to their workflow. Approval and execution later appear in that same
+workflow. Trace metadata does not contain chat text. Optional USD-per-million
+rates are configured with `OPENAI_INPUT_USD_PER_MILLION` and
+`OPENAI_OUTPUT_USD_PER_MILLION`; both are blank in `.env.example`. Set rates
+appropriate to your configured provider/model; missing rates/usage stay unknown.
+
+Add the `SPENDGUARD_SMTP_*` values documented in [insights setup](../docs/insights.md)
+to the ignored `.env`. The dashboard above loads that file. State changes and
+80% budget warnings appear in its Email notifications tab, with queued/sent/
+failed/sending state and attempts. Click **Send / retry queued email** to send;
+chat, approvals, and refresh do not send mail automatically. No real email was
+sent during implementation or automated validation.

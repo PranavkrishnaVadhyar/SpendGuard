@@ -6,14 +6,17 @@ import os
 from pathlib import Path
 import re
 from typing import Annotated
+from uuid import uuid4
 
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
+from langchain_core.runnables import RunnableConfig
 from pydantic import Field
 
 from spendguard import Policy, SpendGuard, SpendGuardError
 from spendguard.integrations.langchain import wrap_tool
+from spendguard.integrations.usage import UsageTracker
 
 AGENT_ID = "chatbot"
 DEFAULT_DB = Path(__file__).with_name("chatbot.db")
@@ -43,16 +46,19 @@ Read the tool result: only settled means executed. Pending means waiting for
 human approval, not purchased. Tell the user the request ID and /approve ID or
 /reject ID commands for held calls. You cannot approve, reject, reset, or change
 limits. Do not claim that real money was spent: purchases are local simulations.
-Use spending_status for current balances. Model API costs are separate and
-are not tracked by SpendGuard. Never invent purchase success or a receipt.
+Use spending_status for current balances. Model costs are estimates when trusted
+rates are configured; unknown costs are not zero. Never invent purchase success or a receipt.
 """
 
 
 class Chatbot:
-    def __init__(self, guard, model):
+    def __init__(self, guard, model, input_rate=None, output_rate=None, model_name=None):
         self.guard = guard
         self.messages = []
         self.orders = {}
+        self.session_id = str(uuid4())
+        self.model_name = model_name or getattr(model, "model_name", type(model).__name__)
+        self.input_rate, self.output_rate = input_rate, output_rate
 
         @tool
         def execute_demo_purchase(order_id: OrderId, quantity: Quantity) -> dict:
@@ -65,11 +71,12 @@ class Chatbot:
         )
 
         @tool
-        def buy_demo_credits(order_id: OrderId, quantity: Quantity) -> dict:
+        def buy_demo_credits(order_id: OrderId, quantity: Quantity, config: RunnableConfig) -> dict:
             """Request demo credits at $10 each. User must supply a unique order ID;
             reuse it for retries. Pending purchases need operator approval.
             """
-            return self.submit_purchase(order_id, quantity)
+            return self.submit_purchase(order_id, quantity,
+                                        (config.get("metadata") or {}).get("spendguard_trace_id"))
 
         @tool
         def spending_status() -> dict:
@@ -79,7 +86,7 @@ class Chatbot:
         self.agent = create_agent(model=model, tools=[buy_demo_credits, spending_status],
                                   system_prompt=SYSTEM_PROMPT)
 
-    def submit_purchase(self, order_id, quantity):
+    def submit_purchase(self, order_id, quantity, trace_id=None):
         # Business IDs are per purchase, rather than shared across an agent run.
         if not isinstance(order_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", order_id):
             raise ValueError("order ID must contain 1-80 letters, numbers, underscores, or hyphens")
@@ -87,7 +94,8 @@ class Chatbot:
             raise ValueError("quantity must be a positive integer")
         inputs = {"order_id": order_id, "quantity": quantity}
         result = self.purchase.invoke(inputs, config={
-            "metadata": {"spendguard_idempotency_key": f"chatbot:{order_id}"},
+            "metadata": {"spendguard_idempotency_key": f"chatbot:{order_id}",
+                         "spendguard_trace_id": trace_id},
         })
         if result["request_id"] is not None:
             self.orders[result["request_id"]] = inputs
@@ -102,10 +110,19 @@ class Chatbot:
         if not text.strip():
             return []
         previous_count = len(self.messages)
-        result = self.agent.invoke(
-            {"messages": self.messages + [HumanMessage(content=text)]},
-            config={"recursion_limit": 12},
-        )
+        trace_id = self.guard.insights.start_trace(AGENT_ID, "Chat turn", self.session_id)
+        tracker = UsageTracker(self.guard.insights, AGENT_ID, trace_id, self.model_name,
+                               self.input_rate, self.output_rate)
+        try:
+            result = self.agent.invoke(
+                {"messages": self.messages + [HumanMessage(content=text)]},
+                config={"recursion_limit": 12, "callbacks": [tracker],
+                        "metadata": {"spendguard_trace_id": trace_id}},
+            )
+        except Exception:
+            self.guard.insights.finish_trace(trace_id, "failed")
+            raise
+        self.guard.insights.finish_trace(trace_id)
         self.messages = result["messages"]
         return self.messages[previous_count + 1:]
 
@@ -151,6 +168,11 @@ class Chatbot:
 def make_guard(db_path):
     guard = SpendGuard(db_path, explainer=lambda *args: None)
     guard.create_agent(AGENT_ID, Policy(100, 50, 25, ["credits.example"]), "Sample Chatbot")
+    snapshot = guard.insights.snapshot()
+    if not any(member['agent_id'] == AGENT_ID for member in snapshot['members']):
+        if not any(team['id'] == 'sample-team' for team in snapshot['teams']):
+            guard.insights.create_team("sample-team", 150, "Sample team")
+        guard.insights.assign_agent(AGENT_ID, "sample-team")
     return guard
 
 
@@ -186,7 +208,13 @@ def main(argv=None):
         guard = make_guard(args.db)
         if args.reset:
             guard.reset()
-        chatbot = Chatbot(guard, model)
+        rates = [float(os.environ[key]) if os.environ.get(key, '').strip() else None
+                 for key in ("OPENAI_INPUT_USD_PER_MILLION", "OPENAI_OUTPUT_USD_PER_MILLION")]
+        # Validate pricing before the first model call; no inferred/stale prices.
+        import math
+        if any(rate is not None and (not math.isfinite(rate) or rate < 0) for rate in rates):
+            raise ValueError("invalid model pricing")
+        chatbot = Chatbot(guard, model, *rates, model_name=args.model)
     except ImportError:
         print("Install the chatbot dependencies: python -m pip install -r sample_app/requirements-chatbot.txt")
         return 1
@@ -194,7 +222,7 @@ def main(argv=None):
         print(f"Could not initialize chatbot ({type(exc).__name__}). Check model configuration and database access.")
         return 1
     print(f"SpendGuard chatbot | model: {args.model} | database: {guard.db_path}")
-    print("Demo purchases are simulated. Chat model API calls can incur charges and are not budgeted here.")
+    print("Demo purchases are simulated. Model usage is tracked after responses; costs require configured rates and remain estimates.")
     print(HELP)
     while True:
         try:

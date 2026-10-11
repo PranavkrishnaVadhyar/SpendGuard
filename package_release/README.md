@@ -123,8 +123,9 @@ customize it. Protect the database and avoid credentials in tool inputs.
 Supported: synchronous LangChain `StructuredTool` tools created with `@tool` and
 Pydantic schemas; `ainvoke` uses a worker thread. Native async-only tools,
 injected runtime/state, custom BaseTool subclasses, and streaming output are
-outside this version. Costs are declared upfront; model calls and unwrapped
-operations are not tracked. Install your model provider's package separately.
+outside this version. Tool costs are declared upfront; model usage can be
+recorded through the optional UsageTracker callback described below. Unwrapped
+operations remain outside tracking. Install your model provider's package separately.
 See the official [LangChain tools documentation](https://docs.langchain.com/oss/python/langchain/tools).
 
 ### Core callbacks
@@ -139,8 +140,9 @@ output never controls policy decisions.
 
 Optional OpenAI explanations use process environment variables `OPENAI_API_KEY`
 and `OPENAI_MODEL` (default `gpt-4o-mini`). Without a key, SDK, or successful call,
-the explainer returns a local template. Environment files are not loaded
-automatically. CLI/dashboard database selection uses `SPENDGUARD_DB` or `--db`;
+the explainer returns a local template. Environment files are not loaded by the
+core automatically; dashboard startup accepts `--env-file PATH` with the dashboard
+extra installed. CLI/dashboard database selection uses `SPENDGUARD_DB` or `--db`;
 Python callers pass the path to the constructor.
 
 SpendGuard is a trusted local library, without an authentication boundary.
@@ -152,6 +154,62 @@ manual reconciliation. Daily accounting follows UTC request creation dates.
 Constructing a guard preserves data, but incompatible older database schemas
 require a separate database file. This is a prototype; a passing test suite
 does not validate real-payment integration or an interactive deployment.
+
+## Model usage, workflows, teams, and email
+
+The dashboard has Model usage, Workflows, Team budgets, and Email notifications
+tabs. Database reads fail visibly instead of showing healthy empty state. Teams
+can be created/updated and agents assigned through its forms. Individual/team
+tool reservations share a transaction, preventing concurrent team overspending.
+Membership is snapshotted per request/usage; old records are not reassigned.
+
+```python
+guard.insights.create_team("research", 150)
+guard.insights.assign_agent("research-bot", "research")
+trace = guard.insights.start_trace("research-bot", "Research run", session_id="session-1")
+# Use a stable unique provider-call ID. Supply trusted USD/million-token rates.
+guard.insights.record_model_usage("research-bot", "model-call-1", "your-model",
+                                 1000, 200, trace_id=trace,
+                                 input_rate=YOUR_INPUT_RATE, output_rate=YOUR_OUTPUT_RATE)
+guard.insights.finish_trace(trace)
+snapshot = guard.insights.snapshot()
+```
+
+Optional LangChain `UsageTracker` from `spendguard.integrations.usage` installs
+as an invocation callback and records reported tokens plus model/tool events.
+Construct it with `(guard.insights, agent_id, trace_id, model_name, input_rate,
+output_rate)` and pass `callbacks=[tracker]` in the invoke config. Set
+`metadata.spendguard_trace_id` to link wrapped
+tool requests to the same trace. Model/tool names, statuses, and request IDs
+are recorded without copying prompt/response text. Existing tool arguments and
+results still reside in SQLite.
+
+Known model estimates reduce future available funds alongside settled tool
+spending and reservations. Missing usage/pricing stays unknown, not zero.
+Estimation is after-response accounting without pre-call reservations or an
+in-flight model cap; cached-token discounts, other fees, and invoice
+reconciliation are not modeled. Uninstrumented calls are not tracked.
+`python -m spendguard.cli --db my-agent.db insights` prints the reporting data.
+
+Notifications queue durably for request changes and, on dashboard/report
+refresh, once-per-day 80% budget warnings. They never send automatically.
+Configure `SPENDGUARD_SMTP_HOST`, `SPENDGUARD_SMTP_PORT` (default 587),
+`SPENDGUARD_SMTP_SECURITY` (`starttls` or `ssl`), `SPENDGUARD_SMTP_FROM`,
+`SPENDGUARD_SMTP_TO`, and optional `SPENDGUARD_SMTP_USERNAME`/`SPENDGUARD_SMTP_PASSWORD`
+in an ignored environment file. Start the dashboard with:
+
+```powershell
+python -m spendguard.cli --db my-agent.db dashboard --env-file .env
+```
+
+Click **Send / retry queued email** to attempt queued/failed messages. SMTP
+acceptance is recorded as sent; inbox delivery is not confirmed. Failures retain
+only an error class; interrupted sending rows need reconciliation before retry.
+Credentials are process-local and never stored in the outbox. Programmatic
+delivery uses `EmailSettings.from_env()` and `send_pending(guard.db_path, settings)`
+from `spendguard.notifications`. Reset clears usage/traces/outbox while retaining
+team configuration; active workflows or sends block reset. Tests use local models
+and mocked SMTP; no live payment/email integration is claimed.
 
 ## Build a distribution
 

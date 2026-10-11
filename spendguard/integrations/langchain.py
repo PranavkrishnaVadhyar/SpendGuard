@@ -51,7 +51,8 @@ def wrap_tool(tool, guard, *, agent_id, merchant, amount, reason="",
 
         description = reason or f"Tool {tool.name}: {arguments}"[:4000]
         outcome = guard._request(agent_id, merchant, cost, description, key,
-                                 {"name": tool.name, "arguments": arguments}, execute)
+                                 {"name": tool.name, "arguments": arguments,
+                                  "trace_id": (config.get("metadata") or {}).get("spendguard_trace_id")}, execute)
         deadline = time.monotonic() + wait_timeout
         while outcome.request_id is not None:
             record = guard.get(outcome.request_id)

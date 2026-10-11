@@ -4,6 +4,11 @@ For an interactive LangChain chatbot with guarded demo purchases, see
 [chatbot setup and usage](CHATBOT.md). Run `chatbot.py` with your OpenAI API
 configuration in the ignored `.env` beside it; `langchain_agent.py` remains the
 offline scripted example. Copy `.env.example` only when creating a new `.env`.
+The chatbot now records model usage and workflow events, joins a default shared
+team on first startup, and queues email alerts. See [insights configuration](../docs/insights.md).
+`dashboard_demo.py --reset` creates a separate offline demonstration database
+with two agents, a shared limit, synthetic model usage, approval/denial, and
+queued notifications; no model provider or email server is contacted.
 
 This directory demonstrates using the installed `spendguard` package from a
 small Python application owned by a package user. This directory can be copied

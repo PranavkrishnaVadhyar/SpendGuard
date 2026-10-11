@@ -11,6 +11,7 @@ from spendguard.constants import TERMINAL
 from spendguard.errors import InvalidState, NotFound, UnknownAgent
 from spendguard.models import Outcome, Policy, RequestRecord
 from spendguard.policy import normalize_merchant
+from spendguard.insights import Insights
 
 try:
     from spendguard.adapters import execute as _default_execute
@@ -79,6 +80,7 @@ class SpendGuard:
         self.explainer = _default_explain if explainer is None else explainer
         self.on_hold = on_hold
         db.initialize(self.db_path)
+        self.insights = Insights(self.db_path)
 
     def create_agent(self, agent_id: str, policy: Policy, name: str | None = None) -> None:
         _text(agent_id, "agent id")
@@ -307,6 +309,13 @@ class SpendGuard:
         with db.transaction(self.db_path) as conn:
             if conn.execute("SELECT 1 FROM requests WHERE status='executing' LIMIT 1").fetchone():
                 raise InvalidState("execution in progress")
+            if conn.execute("SELECT 1 FROM traces WHERE status='running' LIMIT 1").fetchone():
+                raise InvalidState("agent run in progress")
+            if conn.execute("SELECT 1 FROM notifications WHERE status='sending' LIMIT 1").fetchone():
+                raise InvalidState("email send in progress or awaiting reconciliation")
+            conn.execute("DELETE FROM model_usage")
+            conn.execute("DELETE FROM traces")
+            conn.execute("DELETE FROM notifications")
             conn.execute("DELETE FROM requests")
             conn.execute("UPDATE agents SET status='active'")
             conn.execute("INSERT OR REPLACE INTO settings VALUES ('kill_switch_global', '0')")

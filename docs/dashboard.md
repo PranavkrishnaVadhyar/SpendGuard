@@ -1,6 +1,6 @@
 # SpendGuard dashboard and CLI
 
-The dashboard and CLI read and update the same local SQLite database through the public `SpendGuard` API. The dashboard is an optional dependency and can show fixture data before the core package is available.
+The dashboard and CLI read and update the same local SQLite database through the public `SpendGuard` API. The dashboard is an optional dependency; fixture mode displays explicit sample data with controls disabled. Database read failures stop rendering budgets/controls instead of reporting a healthy empty inbox.
 
 ## Install and run
 
@@ -28,14 +28,33 @@ The dashboard refreshes every two seconds. In fixture mode its approval and cont
 spendguard status
 spendguard feed [--limit N]
 spendguard pending
+spendguard insights
 spendguard approve ID [--approver NAME]
 spendguard reject ID [--approver NAME]
 spendguard kill [--agent ID]
 spendguard resume [--agent ID]
-spendguard dashboard [--db PATH] [--port 8501]
+spendguard dashboard [--db PATH] [--port 8501] [--env-file PATH]
 ```
 
-The dashboard approves and rejects requests as `dashboard`. Its kill switch, per-agent kill, resume, and reset controls operate on the selected database. The CLI and dashboard display request descriptions and budget information; they never display credentials.
+The dashboard approves and rejects requests as `dashboard`. Its kill switch, per-agent kill/resume, and reset controls operate on the selected database. Reset also clears model usage, workflows, and notifications, retaining team configuration. It refuses active execution, running workflows, and in-flight email sends. The CLI and dashboard display request descriptions and budget information; they never display SMTP credentials. For LangChain tools, approval authorizes the request; the original wrapper must execute/resume it.
+
+## New dashboard tabs
+
+- **Model usage:** today's reported input/output tokens, known cost estimates, unknown-cost warnings, per-model breakdown, and recent call records.
+- **Workflows:** sessions/turns, model/tool events, request links, and later approval/execution transitions. No prompt/response content is copied into trace metadata.
+- **Team budgets:** shared available/reserved/spent balances, known model estimates, member assignments, and forms to create/update limits and assign agents.
+- **Email notifications:** durable state-change/80%-budget alerts, attempt counts, sanitized failures, and an explicit Send / retry action. Email is never sent automatically on refresh.
+
+See [insights configuration](insights.md) for USD pricing, team semantics, SMTP settings, unknown costs, and delivery limitations. SMTP credentials may be loaded with `--env-file sample_app/.env`; terminal variables override the file.
+
+An isolated offline demo exercises shared team limits, model estimates, workflow events, approval, denial, and notifications without network calls:
+
+```powershell
+.\.venv\Scripts\python.exe sample_app\dashboard_demo.py --reset
+.\.venv\Scripts\python.exe -m spendguard.cli --db sample_app\dashboard_demo.db dashboard
+```
+
+The demo labels its model usage as synthetic and its purchases as simulated. It uses a separate database and never sends email. Automated Streamlit tests verify tab rendering and denial controls; a live browser walkthrough remains unverified.
 
 ## Optional explainer and mock adapter
 
